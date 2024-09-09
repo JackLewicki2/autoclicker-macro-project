@@ -6,10 +6,10 @@ import threading
 #---classes---
 class Autoclicker:
     def __init__(self,key,delay):
-        key_list = key.split(" -> ")
-        if(key_list[1]==""):
+        key_list = key.split("->")
+        if(key_list[1].strip()==""):
             #special keyboard character like shift
-            match key_list[0]:
+            match key_list[0].strip():
                 case "Escape":
                     self.key="esc"
                 case "Tab":
@@ -22,14 +22,20 @@ class Autoclicker:
                     self.key="ctrl"
                 case "Win_L":
                     self.key="left windows"
+                case "Alt_L":
+                    self.key="alt"
+                case " ":
+                    self.key="space"
                 case "Alt_R":
                     self.key="right alt"
                 case "Control_R":
                     self.key="right ctrl"
                 case "Shift_R":
                     self.key="right shift"
-                case "enter":
-                    self.key="Return"
+                case "Return":
+                    self.key="enter"
+                case "BackSpace":
+                    self.key="backspace"
                 case _:
                     self.key=key_list[0].lower().strip()     
         else:
@@ -91,12 +97,12 @@ def change_mode():
     
 #clicked a key
 def clicked_key(event):
-    print("event",event.name)
+    # print("keyboard event",event.name)
     if(current_mode=="Running"):
         for item in list_of_active_items:
-            print("item key",item.key)
+            # print("item key",item.key)
             if(item.key==event.name):
-                print("active mode")
+                # print("active mode")
                 if(item.active):
                     item.active=False
                 else:
@@ -135,9 +141,9 @@ def delete_autoclicker(current_row):
 
 #sets toggle key
 def set_toggle_key(event):
-    print("keysym ",event.keysym)
+    # print("keysym (thing on left)",event.keysym)
     event.widget.delete(0,END)
-    event.widget.insert(0,event.keysym + " -> ") #todo -> decide if want to display both keysym and the symbol
+    event.widget.insert(0,event.keysym + " -> ")
 
 #makes sure can only type numbers in delay textbox
 def validate_delay(S):
@@ -146,7 +152,7 @@ def validate_delay(S):
     return False
 
 #add new item
-def add_new():     #todo -> make this work; create frame for label and checkbox to go in together
+def add_new():
     #getting needed variables
     global list_of_items
     global list_of_checkbox_variables
@@ -194,7 +200,7 @@ def add_new():     #todo -> make this work; create frame for label and checkbox 
 
         #delete button
         delete_button = Button(type_delete_frame,text="Delete", command=lambda: delete_autoclicker(type_delete_frame.grid_info()["row"]))
-        delete_button.grid(row=0, column=1, padx=10)
+        delete_button.grid(row=0, column=1, padx=20)
 
         #Set Toggle Key
         toggle_key_frame = Frame(mainframe)
@@ -269,7 +275,9 @@ type_selector_string=StringVar()
 type_selector = OptionMenu(add_frame, type_selector_string, "Autoclicker","Macro")
 type_selector_string.set("Autoclicker")
 
-type_selector.grid(row=0, column=2)
+type_selector.grid(row=0, column=2, rowspan=100)
+
+
 
 #variables for stuff
 list_of_items=[]
