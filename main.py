@@ -1,50 +1,59 @@
-from tkinter import *
+from tkinter import * # todo -> stop using tkinter input and just use keyboard and mouse
 import keyboard
 import mouse
 import time
 import threading
 #---classes---
 class Autoclicker:
-    def __init__(self,key,delay):
-        key_list = key.split("->")
+    def __init__(self,toggle_key,key_click,delay):
+        print("key click",key_click)
+        self.toggle_key = self.convert_key(toggle_key)
+        if("Click" in key_click): # if is a mouse press
+            self.key_click = key_click.split(" ")[0].lower()
+            self.click_mouse = True
+        else: # otherwise is a keyboard press
+            self.key_click = self.convert_key(key_click)
+            self.click_mouse=False
+        self.delay=float(delay)
+        self.thread = None
+        self.active=False
+
+    def convert_key(self, wrong_format_key):
+        key_list = wrong_format_key.split("->")
         if(key_list[1].strip()==""):
             #special keyboard character like shift
             match key_list[0].strip():
                 case "Escape":
-                    self.key="esc"
+                    return "esc"
                 case "Tab":
-                    self.key="tab"
+                    return "tab"
                 case "Caps_Lock":
-                    self.key="caps lock"
+                    return "caps lock"
                 case "Shift_L":
-                    self.key="shift"
+                    return "shift"
                 case "Control_L":
-                    self.key="ctrl"
+                    return "ctrl"
                 case "Win_L":
-                    self.key="left windows"
+                    return "left windows"
                 case "Alt_L":
-                    self.key="alt"
+                    return "alt"
                 case " ":
-                    self.key="space"
+                    return "space"
                 case "Alt_R":
-                    self.key="right alt"
+                    return "right alt"
                 case "Control_R":
-                    self.key="right ctrl"
+                    return "right ctrl"
                 case "Shift_R":
-                    self.key="right shift"
+                    return "right shift"
                 case "Return":
-                    self.key="enter"
+                    return "enter"
                 case "BackSpace":
-                    self.key="backspace"
+                    return "backspace"
                 case _:
-                    self.key=key_list[0].lower().strip()     
+                    return key_list[0].lower().strip()     
         else:
             #regular keyboard character
-            self.key=key_list[1].strip()
-
-        self.delay=float(delay)
-        self.thread = None
-        self.active=False
+            return key_list[1].strip()
 
     def make_thread(self):
         self.thread = threading.Thread(target=lambda:autoclick(self.delay,self), daemon=True)
@@ -73,11 +82,21 @@ def change_mode():
                 toggle_key = toggle_key_frame.winfo_children()[1].get()
                 if(toggle_key==""):
                     continue
-                set_delay_frame = list_of_items[index][3]
+                
+                key_click_frame = list_of_items[index][3]
+                widget_holding_key_click = key_click_frame.winfo_children()[2]
+                if(str(type(widget_holding_key_click)) == "<class 'tkinter.Entry'>"):
+                    key_click = widget_holding_key_click.get()
+                else:
+                    key_click = widget_holding_key_click.getvar(str(widget_holding_key_click.cget("textvariable")))
+                if(key_click==""):
+                    continue
+
+                set_delay_frame = list_of_items[index][4]
                 delay = set_delay_frame.winfo_children()[1].get()
                 if(delay==""):
                     continue
-                obj = Autoclicker(toggle_key,delay)
+                obj = Autoclicker(toggle_key,key_click,delay)
                 list_of_active_items.append(obj)
     else: # changing mode to edit
         change_mode_button.config(text="Change mode to " + current_mode)
@@ -101,7 +120,7 @@ def clicked_key(event):
     if(current_mode=="Running"):
         for item in list_of_active_items:
             # print("item key",item.key)
-            if(item.key==event.name):
+            if(item.toggle_key==event.name):
                 # print("active mode")
                 if(item.active):
                     item.active=False
@@ -111,12 +130,15 @@ def clicked_key(event):
                     item.thread.start()
 #autoclick
 def autoclick(delay,item):
-    while(True):
-        mouse.click()
+    while(item.active):
+        if(item.click_mouse):
+            mouse.click(button=item.key_click)
+        else:
+            print(item.key_click)
+            keyboard.send(item.key_click)
         print("clicked")
         time.sleep(delay/1000.0)
-        if(not item.active):
-           break
+
 #delete autoclicker button
 def delete_autoclicker(current_row):
     global list_of_items
@@ -140,7 +162,7 @@ def delete_autoclicker(current_row):
     add_frame.grid_configure(row=add_frame.grid_info()["row"] -2)
 
 #sets toggle key
-def set_toggle_key(event):
+def store_key_in_textbox(event):
     # print("keysym (thing on left)",event.keysym)
     event.widget.delete(0,END)
     event.widget.insert(0,event.keysym + " -> ")
@@ -150,6 +172,22 @@ def validate_delay(S):
     if(S.isnumeric()):
         return True
     return False
+
+#updates frame to be mouse or keyboard selection
+def mouse_or_keyboard_selector_update(new_selection, current_frame):
+    old_thing = current_frame.winfo_children()[2]
+    old_thing.grid_forget()
+    old_thing.destroy()
+
+    if(new_selection=="Mouse"):
+        mouse_button_selector_string=StringVar()
+        mouse_button_selector = OptionMenu(current_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
+        mouse_button_selector_string.set("Left Click")
+        mouse_button_selector.grid(row=0, column=2, padx=5)
+    else:
+        toggle_key_textbox=Entry(current_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white")
+        toggle_key_textbox.bind("<Key>",store_key_in_textbox)
+        toggle_key_textbox.grid(row=0,column=2, padx=5)
 
 #add new item
 def add_new():
@@ -200,7 +238,7 @@ def add_new():
 
         #delete button
         delete_button = Button(type_delete_frame,text="Delete", command=lambda: delete_autoclicker(type_delete_frame.grid_info()["row"]))
-        delete_button.grid(row=0, column=1, padx=20)
+        delete_button.grid(row=0, column=1, padx=23)
 
         #Set Toggle Key
         toggle_key_frame = Frame(mainframe)
@@ -212,12 +250,35 @@ def add_new():
         toggle_key_label.grid(row=0,column=0)
 
         toggle_key_textbox=Entry(toggle_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white")
-        toggle_key_textbox.bind("<Key>",set_toggle_key)
+        toggle_key_textbox.bind("<Key>",store_key_in_textbox)
         toggle_key_textbox.grid(row=0,column=1)
+
+        #Set click key
+        set_click_key_frame = Frame(mainframe)
+        set_click_key_frame.grid(row=current_row+1,column=1, sticky=(N,E,S,W))
+        set_click_key_frame.config(background="black")
+        list_of_items[len(list_of_items)-1].append(set_click_key_frame)
+
+        set_click_key_label = Label(set_click_key_frame,text="Click Key: ",fg="white", bg="black",font=("Arial",15))
+        set_click_key_label.grid(row=0,column=0)
+
+        mouse_or_keyboard_selector_string=StringVar()
+        mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
+        mouse_or_keyboard_selector_string.set("Mouse")
+        mouse_or_keyboard_selector.grid(row=0, column=1, padx=(0,5))
+
+        # toggle_key_textbox=Entry(set_click_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white")
+        # toggle_key_textbox.bind("<Key>",store_key_in_textbox)
+        # toggle_key_textbox.grid(row=0,column=2, padx=5)
+
+        mouse_button_selector_string=StringVar()
+        mouse_button_selector = OptionMenu(set_click_key_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
+        mouse_button_selector_string.set("Left Click")
+        mouse_button_selector.grid(row=0, column=2, padx=5)
 
         #Set Delay
         set_delay_frame = Frame(mainframe)
-        set_delay_frame.grid(row=current_row+1,column=1, sticky=(N,E,S,W))
+        set_delay_frame.grid(row=current_row+1,column=2, sticky=(N,E,S,W))
         set_delay_frame.config(background="black")
         list_of_items[len(list_of_items)-1].append(set_delay_frame)
 
@@ -238,7 +299,7 @@ window = Tk() # instantiates an instance of a window
 window.title("Jack's Macro App") # title of window
 icon = PhotoImage(file='shedinja.png') # turning image into format tkinter can use. HAS TO BE PNG
 window.iconphoto(True, icon)
-window.geometry("700x400") # initial size of window
+window.geometry("1100x400") # initial size of window
 
 #---setting up mainframe---
 mainframe = Frame(window)
@@ -274,8 +335,7 @@ type_selector_label.grid(row=0, column=1, padx=(10,0))
 type_selector_string=StringVar()
 type_selector = OptionMenu(add_frame, type_selector_string, "Autoclicker","Macro")
 type_selector_string.set("Autoclicker")
-
-type_selector.grid(row=0, column=2, rowspan=100)
+type_selector.grid(row=0, column=2)
 
 
 
