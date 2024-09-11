@@ -14,6 +14,8 @@ class Autoclicker:
             self.key_click = convert_key(key_click)
             self.click_mouse=False
         self.delay=float(delay)
+        if(self.delay==0):
+            self.delay=1
         self.thread = None
         self.active=False
 
@@ -33,6 +35,8 @@ class Macro: #obj = Macro(toggle_key,loop,command_list)
                 key_click = convert_key(command[0])
                 click_mouse=False
             delay=float(command[1])
+            if(delay==0):
+                delay=1
             self.command_list.append([click_mouse,key_click,delay])
         self.thread = None
         self.active=False
@@ -59,7 +63,7 @@ def change_mode():
 
         #sets up list to hold object of the active items
         list_of_active_items=[]
-        for index in range(len(list_of_checkbox_variables)): # todo -> when make macro will need another if to check if want an autoclicker or macro
+        for index in range(len(list_of_checkbox_variables)):
             if list_of_checkbox_variables[index].get(): # if item is active
                 if(len(list_of_items[index])==5): # length 5 means is autoclicker. A bigger length means is a macro.
                     toggle_key_frame = list_of_items[index][2]
@@ -195,7 +199,7 @@ def autoclick(delay,item):
         else:
             print(item.key_click)
             keyboard.send(item.key_click)
-        print("clicked")
+        # print("clicked")
         time.sleep(delay/1000.0)
 
 #executing macro
@@ -209,7 +213,7 @@ def execute_macro(loop,command_list,item):
             else:
                 # print(item.key_click)
                 keyboard.send(command[1])
-            print("clicked")
+            # print("clicked")
             time.sleep(command[2]/1000.0)
         if(not loop):
             item.active=False
@@ -283,10 +287,12 @@ def mouse_or_keyboard_selector_update(new_selection, current_frame):
     if(new_selection=="Mouse"):
         mouse_button_selector_string=StringVar()
         mouse_button_selector = OptionMenu(current_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
+        mouse_button_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+        mouse_button_selector["menu"].config(bg="black",fg="white")
         mouse_button_selector_string.set("Left Click")
         mouse_button_selector.grid(row=0, column=2, padx=5)
     else:
-        toggle_key_textbox=Entry(current_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white")
+        toggle_key_textbox=Entry(current_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=14)
         toggle_key_textbox.bind("<Key>",store_key_in_textbox)
         toggle_key_textbox.grid(row=0,column=2, padx=5)
 
@@ -322,6 +328,8 @@ def add_new_command(current_row):
 
     mouse_or_keyboard_selector_string=StringVar()
     mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
+    mouse_or_keyboard_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+    mouse_or_keyboard_selector["menu"].config(bg="black",fg="white")
     mouse_or_keyboard_selector_string.set("Mouse")
     mouse_or_keyboard_selector.grid(row=0, column=1, padx=(0,5))
 
@@ -331,6 +339,8 @@ def add_new_command(current_row):
 
     mouse_button_selector_string=StringVar()
     mouse_button_selector = OptionMenu(set_click_key_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
+    mouse_button_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+    mouse_button_selector["menu"].config(bg="black",fg="white")
     mouse_button_selector_string.set("Left Click")
     mouse_button_selector.grid(row=0, column=2, padx=5)
 
@@ -395,7 +405,7 @@ def add_new():
         type_label.grid(row=0,column=0, padx=5)
 
         #delete button
-        delete_button = Button(type_delete_frame,text="Delete", command=lambda: delete_autoclicker(type_delete_frame.grid_info()["row"]))
+        delete_button = Button(type_delete_frame,text="Delete", command=lambda: delete_autoclicker(type_delete_frame.grid_info()["row"]), fg="white", bg="black", activeforeground="white",activebackground="black")
         delete_button.grid(row=0, column=1, padx=23)
 
         #Set Toggle Key
@@ -422,6 +432,8 @@ def add_new():
 
         mouse_or_keyboard_selector_string=StringVar()
         mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
+        mouse_or_keyboard_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+        mouse_or_keyboard_selector["menu"].config(bg="black",fg="white")
         mouse_or_keyboard_selector_string.set("Mouse")
         mouse_or_keyboard_selector.grid(row=0, column=1, padx=(0,5))
 
@@ -431,6 +443,8 @@ def add_new():
 
         mouse_button_selector_string=StringVar()
         mouse_button_selector = OptionMenu(set_click_key_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
+        mouse_button_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+        mouse_button_selector["menu"].config(bg="black",fg="white")
         mouse_button_selector_string.set("Left Click")
         mouse_button_selector.grid(row=0, column=2, padx=5)
 
@@ -484,8 +498,8 @@ def add_new():
         type_label.grid(row=0,column=0, padx=5)
 
         #delete button
-        delete_button = Button(type_delete_frame,text="Delete")
-        delete_button.grid(row=0, column=1, padx=23)
+        delete_button = Button(type_delete_frame,text="Delete", fg="white", bg="black", activeforeground="white",activebackground="black")
+        delete_button.grid(row=0, column=1, padx=63)
 
         #Set Toggle Key
         toggle_key_frame = Frame(mainframe)
@@ -525,6 +539,8 @@ def add_new():
 
         mouse_or_keyboard_selector_string=StringVar()
         mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
+        mouse_or_keyboard_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+        mouse_or_keyboard_selector["menu"].config(bg="black",fg="white")
         mouse_or_keyboard_selector_string.set("Mouse")
         mouse_or_keyboard_selector.grid(row=0, column=1, padx=(0,5))
 
@@ -534,6 +550,8 @@ def add_new():
 
         mouse_button_selector_string=StringVar()
         mouse_button_selector = OptionMenu(set_click_key_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
+        mouse_button_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+        mouse_button_selector["menu"].config(bg="black",fg="white")
         mouse_button_selector_string.set("Left Click")
         mouse_button_selector.grid(row=0, column=2, padx=5)
 
@@ -559,7 +577,7 @@ def add_new():
         add_another_command_frame.config(background="black")
         list_of_items[len(list_of_items)-1].insert(4,add_another_command_frame) # insert at 4 so that all command frames are at the end
 
-        add_another_command_button = Button(add_another_command_frame,text="Add Another Command", command=lambda: add_new_command(add_another_command_frame.grid_info()["row"]))
+        add_another_command_button = Button(add_another_command_frame,text="Add Another Command", command=lambda: add_new_command(add_another_command_frame.grid_info()["row"]), fg="white", bg="black", activeforeground="white",activebackground="black")
         add_another_command_button.grid(row=0, column=0)
 
         #setting up delete button
@@ -578,11 +596,10 @@ window.geometry("1100x400") # initial size of window
 mainframe = Frame(window)
 mainframe.grid(row=0, column=0, sticky=(N,E,S,W)) # sticky means it will stick to sides of the window
 window.columnconfigure(0, weight=1) # column 0 will strech to take up all available space 
-window.rowconfigure(0,weight=1) # row 0 will strech to take up all available space #todo -> apply this for everything so they grow with window size
+window.rowconfigure(0,weight=1) # row 0 will strech to take up all available space
 mainframe.config(background="black")
 
 #---modes---
-#todo -> make button always be in same spot regardless of current mode text
 current_mode = "Edit"
 #Text
 current_mode_label = Label(mainframe, text="Current Mode: " + current_mode, fg="white", bg="black",font=("Arial",15))
@@ -598,7 +615,7 @@ add_frame.grid(row=1, column=0, sticky=(N,E,S,W))
 add_frame.config(background="black")
 
 #Add button
-add_button = Button(add_frame,text="Add New", command=add_new)
+add_button = Button(add_frame,text="Add New", command=add_new, fg="white", bg="black", activeforeground="white",activebackground="black",font=("Arial",15))
 add_button.grid(row=0, column=0)
 
 #type selector
@@ -607,6 +624,8 @@ type_selector_label.grid(row=0, column=1, padx=(10,0))
 
 type_selector_string=StringVar()
 type_selector = OptionMenu(add_frame, type_selector_string, "Autoclicker","Macro")
+type_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+type_selector["menu"].config(bg="black",fg="white")
 type_selector_string.set("Autoclicker")
 type_selector.grid(row=0, column=2)
 
@@ -621,8 +640,6 @@ list_of_active_items=[]
 #adds spacing to each widget
 for child in mainframe.winfo_children(): 
     child.grid_configure(padx=5, pady=5)
-
-    #todo -> maybe put other things here like bg, font, etc.
 
 keyboard.on_press(clicked_key) # activates keyboard
 window.mainloop() # activates the window
