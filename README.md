@@ -19,9 +19,6 @@ When you press the assigned Toggle Key, the corrsponding autoclicker/macro will 
 You can click the 'Change mode to Edit' button at the top to disable all active autoclickers/macros and begin editing.<br/>
 <br/>
 --Known Issues--<br/>
-Having a Click Key be !, @ ,# , etc. will output 1, 2, 3, etc. instead of the proper symbol.<br/>
-Some combos of keys like fn+f1 do not works as valid keys in Toggle Key and Click Key textboxes.<br/>
-There is no support for uppercase click key output or toggle keys.<br/>
 Adding many autoclickers/macros will move ones some off the bottom of the screen, rendering them inacessible and uneditable.<br/>
 <br/>
 --Possible Future Improvements--<br/>
