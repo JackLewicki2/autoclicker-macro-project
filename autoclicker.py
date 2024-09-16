@@ -621,8 +621,8 @@ def add_new():
 #---setting up window---
 window = Tk() # instantiates an instance of a window
 window.title("Macro App") # title of window
-icon = PhotoImage(file='mouseicon.png') # turning image into format tkinter can use. HAS TO BE PNG
-window.iconphoto(True, icon)
+# icon = PhotoImage(file='mouseicon.png') # turning image into format tkinter can use. HAS TO BE PNG
+# window.iconphoto(True, icon)
 window.geometry("1100x400") # initial size of window
 
 #---setting up mainframe---
