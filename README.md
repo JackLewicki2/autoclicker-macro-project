@@ -1,5 +1,5 @@
 --What to Download--<br/>
-Downloading the autoclicker.exe file will allow you to run the app. Alternatively, you can download the autoclicker.py and the mouseicon.png file and run the app like you would any other python program.<br/>
+Downloading the autoclicker.exe file will allow you to run the app. Alternatively, you can download the autoclicker.py and run the app like you would any other python program.<br/>
 <br/>
 --How to Use--<br/>
 The 'Add New' button allows you to add a new autoclicker/macro. You can select which to add by using the 'Type' selector.<br/>
