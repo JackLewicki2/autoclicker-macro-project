@@ -1,17 +1,20 @@
-from tkinter import * # todo -> stop using tkinter input and just use keyboard and mouse
-import keyboard # known issues -> Keys like !,@ will output 1, 2; some combos like fn+f1 will not work and throw errors; no support for uppercase
-import mouse
+from tkinter import *
+import keyboard
+import mouse # todo -> add a way to delete individual macro commands
 import time
 import threading
 #---classes---
 class Autoclicker:
     def __init__(self,toggle_key,key_click,delay):
-        self.toggle_key = convert_key(toggle_key)
+        self.toggle_key = toggle_key
         if("Click" in key_click): # if is a mouse press
             self.key_click = key_click.split(" ")[0].lower()
             self.click_mouse = True
         else: # otherwise is a keyboard press
-            self.key_click = convert_key(key_click)
+            if(key_click in shift_symbols):
+                self.key_click = key_click + " " # add space at the end to indicate needs a shift key
+            else:
+                self.key_click = key_click
             self.click_mouse=False
         self.delay=float(delay)
         if(self.delay==0):
@@ -24,7 +27,7 @@ class Autoclicker:
 
 class Macro: #obj = Macro(toggle_key,loop,command_list)
     def __init__(self,toggle_key,loop, command_list):
-        self.toggle_key = convert_key(toggle_key)
+        self.toggle_key = toggle_key
         self.loop=loop
         self.command_list=[]
         for command in command_list:
@@ -32,7 +35,10 @@ class Macro: #obj = Macro(toggle_key,loop,command_list)
                 key_click = command[0].split(" ")[0].lower()
                 click_mouse = True
             else: # otherwise is a keyboard press
-                key_click = convert_key(command[0])
+                if(command[0] in shift_symbols):
+                    key_click = command[0] + " " # add space at the end to indicate needs a shift key
+                else:
+                    key_click = command[0]
                 click_mouse=False
             delay=float(command[1])
             if(delay==0):
@@ -51,7 +57,7 @@ def change_mode():
     global current_mode
     global list_of_active_items
     if(current_mode=="Edit"): # changing mode to running
-        change_mode_button.config(text="Change mode to " + current_mode)
+        change_mode_button.config(text="Change mode to " + current_mode) # todo -> capitalize mode
         current_mode="Running"
         #disable all settings while running
         for list in list_of_items:
@@ -139,47 +145,49 @@ def change_mode():
     #update current_mode_label
     current_mode_label.config(text="Current Mode: " + current_mode)
 
-#converts a key in bad format to one Keyboard class can use
-def convert_key(wrong_format_key):
-    key_list = wrong_format_key.split("->")
-    if(key_list[1].strip()==""):
-        #special keyboard character like shift
-        match key_list[0].strip():
-            case "Escape":
-                return "esc"
-            case "Tab":
-                return "tab"
-            case "Caps_Lock":
-                return "caps lock"
-            case "Shift_L":
-                return "shift"
-            case "Control_L":
-                return "ctrl"
-            case "Win_L":
-                return "left windows"
-            case "Alt_L":
-                return "alt"
-            case " ":
-                return "space"
-            case "Alt_R":
-                return "right alt"
-            case "Control_R":
-                return "right ctrl"
-            case "Shift_R":
-                return "right shift"
-            case "Return":
-                return "enter"
-            case "BackSpace":
-                return "backspace"
-            case _:
-                return key_list[0].lower().strip()     
-    else:
-        #regular keyboard character
-        return key_list[1].strip()
+# #converts a key in bad format to one Keyboard class can use
+# def convert_key(wrong_format_key):
+#     key_list = wrong_format_key.split("->")
+#     if(key_list[1].strip()==""):
+#         #special keyboard character like shift
+#         match key_list[0].strip():
+#             case "Escape":
+#                 return "esc"
+#             case "Tab":
+#                 return "tab"
+#             case "Caps_Lock":
+#                 return "caps lock"
+#             case "Shift_L":
+#                 return "shift"
+#             case "Control_L":
+#                 return "ctrl"
+#             case "Win_L":
+#                 return "left windows"
+#             case "Alt_L":
+#                 return "alt"
+#             case " ":
+#                 return "space"
+#             case "Alt_R":
+#                 return "right alt"
+#             case "Control_R":
+#                 return "right ctrl"
+#             case "Shift_R":
+#                 return "right shift"
+#             case "Return":
+#                 return "enter"
+#             case "BackSpace":
+#                 return "backspace"
+#             case _:
+#                 return key_list[0].lower().strip()     
+#     else:
+#         #regular keyboard character
+#         return key_list[1].strip()
 
 #clicked a key
 def clicked_key(event):
-    # print("keyboard event",event.name)
+    global most_recent_key_pressed
+    most_recent_key_pressed=event.name
+    # print("keyboard event",event.name,event.scan_code)
     if(current_mode=="Running"):
         for item in list_of_active_items:
             # print("item key",item.key)
@@ -197,8 +205,12 @@ def autoclick(delay,item):
         if(item.click_mouse):
             mouse.click(button=item.key_click)
         else:
-            print(item.key_click)
-            keyboard.send(item.key_click)
+            if(item.key_click[-1] == " "):
+                keyboard.press("shift")
+                keyboard.send(item.key_click[0])
+                keyboard.release("shift")
+            else:
+                keyboard.send(item.key_click)
         # print("clicked")
         time.sleep(delay/1000.0)
 
@@ -208,11 +220,16 @@ def execute_macro(loop,command_list,item):
         for command in command_list:
             if(not item.active):
                 return
-            if(command[0]): # command is is_mouse, key_click, delay
+            if(command[0]): # command is (is_mouse, key_click, delay)
                 mouse.click(button=command[1])
             else:
                 # print(item.key_click)
-                keyboard.send(command[1])
+                if(command[1][-1] == " "): #space at end means need a shift key
+                    keyboard.press("shift")
+                    keyboard.send(command[1][0])
+                    keyboard.release("shift")
+                else:
+                    keyboard.send(command[1])
             # print("clicked")
             time.sleep(command[2]/1000.0)
         if(not loop):
@@ -266,11 +283,21 @@ def delete_macro(current_row):
     #moving the add_frame up
     add_frame.grid_configure(row=add_frame.grid_info()["row"] - 3 - number_of_commands)
 
-#sets toggle key
+#gets rid of the ' ' when type space key in an entry box
+def strip_string_variable(string_variable):
+    string_variable.set(string_variable.get().strip())
+
+#sets toggle key and click key
 def store_key_in_textbox(event):
+    # print("most recent pressed:",most_recent_key_pressed)
+    # print("current textbox: ", event.widget.get())
     # print("keysym (thing on left)",event.keysym)
     event.widget.delete(0,END)
-    event.widget.insert(0,event.keysym + " -> ")
+    if(len(most_recent_key_pressed)!=1): # if length is not 1 is something like control or tab which doesn't have a representation
+        if(most_recent_key_pressed=="backspace"):
+            event.widget.insert(0,most_recent_key_pressed + "e") # need extra character because backspace deletes a character
+        else:
+            event.widget.insert(0,most_recent_key_pressed)
 
 #makes sure can only type numbers in delay textbox
 def validate_delay(S):
@@ -292,9 +319,11 @@ def mouse_or_keyboard_selector_update(new_selection, current_frame):
         mouse_button_selector_string.set("Left Click")
         mouse_button_selector.grid(row=0, column=2, padx=5)
     else:
-        toggle_key_textbox=Entry(current_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=14)
-        toggle_key_textbox.bind("<Key>",store_key_in_textbox)
-        toggle_key_textbox.grid(row=0,column=2, padx=5)
+        click_key_string = StringVar()
+        click_key_string.trace_add("write", lambda name, index, mode: strip_string_variable(click_key_string))
+        click_key_textbox=Entry(current_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=14, textvariable=click_key_string)
+        click_key_textbox.bind("<Key>",store_key_in_textbox)
+        click_key_textbox.grid(row=0,column=2, padx=5)
 
 #add new command
 def add_new_command(current_row):
@@ -417,7 +446,9 @@ def add_new():
         toggle_key_label = Label(toggle_key_frame,text="Toggle Key: ",fg="white", bg="black",font=("Arial",15))
         toggle_key_label.grid(row=0,column=0)
 
-        toggle_key_textbox=Entry(toggle_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white")
+        toggle_key_string = StringVar()
+        toggle_key_string.trace_add("write", lambda name, index, mode: strip_string_variable(toggle_key_string))
+        toggle_key_textbox=Entry(toggle_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", textvariable = toggle_key_string)
         toggle_key_textbox.bind("<Key>",store_key_in_textbox)
         toggle_key_textbox.grid(row=0,column=1)
 
@@ -510,7 +541,9 @@ def add_new():
         toggle_key_label = Label(toggle_key_frame,text="Toggle Key: ",fg="white", bg="black",font=("Arial",15))
         toggle_key_label.grid(row=0,column=0)
 
-        toggle_key_textbox=Entry(toggle_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white")
+        toggle_key_string = StringVar()
+        toggle_key_string.trace_add("write", lambda name, index, mode: strip_string_variable(toggle_key_string))
+        toggle_key_textbox=Entry(toggle_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", textvariable=toggle_key_string)
         toggle_key_textbox.bind("<Key>",store_key_in_textbox)
         toggle_key_textbox.grid(row=0,column=1)
 
@@ -635,6 +668,8 @@ type_selector.grid(row=0, column=2)
 list_of_items=[]
 list_of_checkbox_variables=[]
 list_of_active_items=[]
+most_recent_key_pressed=""
+shift_symbols = '~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?'
 
 #---whatever---
 #adds spacing to each widget
