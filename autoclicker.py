@@ -1,6 +1,6 @@
 from tkinter import *
 import keyboard
-import mouse # todo -> add a way to delete individual macro commands
+import mouse
 import time
 import threading
 #---classes---
@@ -57,7 +57,7 @@ def change_mode():
     global current_mode
     global list_of_active_items
     if(current_mode=="Edit"): # changing mode to running
-        change_mode_button.config(text="Change mode to " + current_mode) # todo -> capitalize mode
+        change_mode_button.config(text="Change Mode to " + current_mode)
         current_mode="Running"
         #disable all settings while running
         for list in list_of_items:
@@ -65,6 +65,7 @@ def change_mode():
                 for child in frame.winfo_children(): 
                     child.configure(state="disabled")
         add_button.configure(state="disabled")
+        type_selector_label.configure(state="disabled")
         type_selector.configure(state="disabled")
 
         #sets up list to hold object of the active items
@@ -130,7 +131,7 @@ def change_mode():
                     obj = Macro(toggle_key,loop,command_list)
                     list_of_active_items.append(obj)
     else: # changing mode to edit
-        change_mode_button.config(text="Change mode to " + current_mode)
+        change_mode_button.config(text="Change Mode to " + current_mode)
         current_mode="Edit"
         #turns off any running items
         for item in list_of_active_items:
@@ -141,6 +142,7 @@ def change_mode():
                 for child in frame.winfo_children(): 
                     child.configure(state="normal")
         add_button.configure(state="normal")
+        type_selector_label.configure(state="normal")
         type_selector.configure(state="normal")
     #update current_mode_label
     current_mode_label.config(text="Current Mode: " + current_mode)
@@ -304,6 +306,10 @@ def validate_delay(S):
     if(S.isnumeric()):
         return True
     return False
+
+#makes canvas take up all space mainframe does so can scroll through it. Is called when mainframe's size changes (from additions/deletions).
+def update_canvas_for_scroll(canvas):
+    canvas.configure(scrollregion=canvas.bbox("all"))
 
 #updates frame to be mouse or keyboard selection
 def mouse_or_keyboard_selector_update(new_selection, current_frame):
@@ -625,12 +631,18 @@ window.title("Macro App") # title of window
 # window.iconphoto(True, icon)
 window.geometry("1100x400") # initial size of window
 
-#---setting up mainframe---
-mainframe = Frame(window)
-mainframe.grid(row=0, column=0, sticky=(N,E,S,W)) # sticky means it will stick to sides of the window
-window.columnconfigure(0, weight=1) # column 0 will strech to take up all available space 
-window.rowconfigure(0,weight=1) # row 0 will strech to take up all available space
-mainframe.config(background="black")
+#---setting up canvas, scrollbar and mainframe---
+canvas=Canvas(window, background='black',highlightthickness=0) # highlightthickness=0 prevents a white border around the screen
+mainframe = Frame(canvas, background="black")
+vbar=Scrollbar(window,orient=VERTICAL,command=canvas.yview)
+canvas.config(yscrollcommand=vbar.set)  #sets canvas to scroll using the vbar
+
+#use pack here because then don't have to set stuff with window.column/row configure and is just overall easier.
+vbar.pack(side="right", fill="y") #basically vbar.grid(row=0, column=1,sticky=(N,S))
+canvas.pack(side="left", fill="both", expand=True) # basically canvas.grid(row=0,column=0, sticky=(N,E,S,W))
+
+canvas.create_window(0,0, window=mainframe, anchor="nw") #0,0 means make the window in the top left; anchor=nw makes mainframe go to top left like if grid 0,0
+mainframe.bind("<Configure>", lambda event, canvas=canvas: update_canvas_for_scroll(canvas)) # will call updater when mainframe's width/height changes. 'event' contains width/height info but not needed.
 
 #---modes---
 current_mode = "Edit"
@@ -638,7 +650,7 @@ current_mode = "Edit"
 current_mode_label = Label(mainframe, text="Current Mode: " + current_mode, fg="white", bg="black",font=("Arial",15))
 current_mode_label.grid(row=0,column=0)
 #Button to Change
-change_mode_button = Button(mainframe, text="Change mode to " + "Running", command=change_mode, fg="white", bg="black", activeforeground="white",activebackground="black",font=("Arial",15))
+change_mode_button = Button(mainframe, text="Change Mode to " + "Running", command=change_mode, fg="white", bg="black", activeforeground="white",activebackground="black",font=("Arial",15))
 change_mode_button.grid(row=0, column=1)
 
 #---add button---

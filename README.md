@@ -1,5 +1,5 @@
 --What to Download--<br/>
-Downloading the autoclicker.exe file will allow you to run the app. Alternatively, you can download the autoclicker.py and run the app like you would any other python program.<br/>
+Downloading the autoclicker.exe file will allow you to run the app. Alternatively, you can download autoclicker.py and run the app like you would any other python program.<br/>
 <br/>
 --How to Use--<br/>
 The 'Add New' button allows you to add a new autoclicker/macro. You can select which to add by using the 'Type' selector.<br/>
@@ -18,8 +18,11 @@ Once you have set up your autoclickers/macros, you can click the 'Change mode to
 When you press the assigned Toggle Key, the corrsponding autoclicker/macro will turn on/off.<br/>
 You can click the 'Change mode to Edit' button at the top to disable all active autoclickers/macros and begin editing.<br/>
 <br/>
+There is a scrollbar located on the right side of the screen. You can use it to scroll through the application if the size of the autoclickers/macros exceeds the screen size.<br/>
+<br/>
 --Known Issues--<br/>
-Adding many autoclickers/macros will move ones some off the bottom of the screen, rendering them inacessible and uneditable.<br/>
+None right now.
+<br/>
 <br/>
 --Possible Future Improvements--<br/>
 Delete button for individual macro commands<br/>
