@@ -13,6 +13,7 @@ The 'Click Key' selector lets you choose whether to have the mouse or the keyboa
 &ensp;  If you choose 'Keyboard' a textbox similar to the 'Toggle Key' textbox appears allowing you to set the keyboard key to by clicked.<br/>
 The 'Delay' textbox lets you set the delay in milliseconds between clicks for autoclickers. For macros, it sets the time to wait until executing the next command.<br/>
 Macros have an additional 'Add Another Command' button that allows you to add another command for the macro to execute.<br/>
+You can delete a macro command by clicking the delete button on the very right of the command you wish to delete.<br/>
 <br/>
 Once you have set up your autoclickers/macros, you can click the 'Change mode to Running' button at the top to disable editing and start executing the autoclickers/macros.<br/>
 When you press the assigned Toggle Key, the corrsponding autoclicker/macro will turn on/off.<br/>

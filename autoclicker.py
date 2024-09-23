@@ -56,6 +56,7 @@ class Macro: #obj = Macro(toggle_key,loop,command_list)
 def change_mode():
     global current_mode
     global list_of_active_items
+    global number_of_frames_in_macro_command
     if(current_mode=="Edit"): # changing mode to running
         change_mode_button.config(text="Change Mode to " + current_mode)
         current_mode="Running"
@@ -106,7 +107,7 @@ def change_mode():
                     
                     command_list=[]
                     successful_add = True
-                    for i in range(5,len(list_of_items[index]),2):
+                    for i in range(5,len(list_of_items[index]),number_of_frames_in_macro_command):
                         key_click_frame = list_of_items[index][i]
                         widget_holding_key_click = key_click_frame.winfo_children()[2]
                         if(str(type(widget_holding_key_click)) == "<class 'tkinter.Entry'>"):
@@ -263,6 +264,7 @@ def delete_autoclicker(current_row):
 #delete macro button
 def delete_macro(current_row):
     global list_of_items
+    global number_of_frames_in_macro_command
     index_of_item_deleting=-1
     number_of_commands=1
     #finding the index in list of items of the item we are deleting and moving items below up
@@ -270,7 +272,7 @@ def delete_macro(current_row):
         if(list[0].grid_info()["row"] <= current_row):
             index_of_item_deleting+=1
         else:
-            number_of_commands = (len(list_of_items[index_of_item_deleting])-5)//2
+            number_of_commands = (len(list_of_items[index_of_item_deleting])-5)//number_of_frames_in_macro_command
             for frame in list:
                 if(frame.grid_info()["row"] > current_row+1):
                     frame.grid_configure(row=frame.grid_info()["row"] - 3 - number_of_commands)            
@@ -334,6 +336,7 @@ def mouse_or_keyboard_selector_update(new_selection, current_frame):
 #add new command
 def add_new_command(current_row):
     global list_of_items
+    global number_of_frames_in_macro_command
     #finding index of where adding
     index_of_item_adding=-1
     #finding the index in list of items of the item we are deleting and moving items below down
@@ -345,7 +348,7 @@ def add_new_command(current_row):
                 if(frame.grid_info()["row"] > current_row):
                     frame.grid_configure(row=frame.grid_info()["row"] + 1) 
 
-    number_of_commands = (len(list_of_items[index_of_item_adding])-5)//2 + 1
+    number_of_commands = (len(list_of_items[index_of_item_adding])-5)//number_of_frames_in_macro_command + 1
 
     #moving add frame
     add_frame.grid_configure(row=add_frame.grid_info()["row"] + 1)
@@ -394,6 +397,54 @@ def add_new_command(current_row):
 
     set_delay_seconds_label = Label(set_delay_frame,text="miliseconds",fg="white", bg="black",font=("Arial",15))
     set_delay_seconds_label.grid(row=0,column=2)
+
+    #delete button
+    delete_command_button_frame = Frame(mainframe)
+    delete_command_button_frame.grid(row=current_row,column=2, sticky=(N,E,S,W))
+    delete_command_button_frame.config(background="black")
+    list_of_items[index_of_item_adding].append(delete_command_button_frame)
+
+    delete_command_button = Button(delete_command_button_frame,text="Delete Command", fg="white", bg="black", activeforeground="white",activebackground="black")
+    delete_command_button.grid(row=0, column=0, padx=5)
+    delete_command_button.configure(command=lambda: delete_macro_command(delete_command_button_frame.grid_info()["row"]))
+
+def delete_macro_command(row_to_delete):
+    global list_of_items
+    global number_of_frames_in_macro_command
+    #finding index of where adding
+    index_of_macro =-1
+    #finding the index in list of items of the item we are deleting and moving items below up
+    for list in list_of_items:
+        if(list[0].grid_info()["row"] <= row_to_delete):
+            index_of_macro+=1
+        else:
+            for frame in list:
+                if(frame.grid_info()["row"] > row_to_delete):
+                    frame.grid_configure(row=frame.grid_info()["row"] - 1) 
+    
+    #moving add frame
+    add_frame.grid_configure(row=add_frame.grid_info()["row"] - 1)
+    #moving add new command button
+    list_of_items[index_of_macro][4].grid_configure(row=list_of_items[index_of_macro][4].grid_info()["row"] - 1)
+    
+    index_of_command_deleting =-1
+    for index in range(5, len(list_of_items[index_of_macro]),number_of_frames_in_macro_command):
+        if(list_of_items[index_of_macro][index].grid_info()["row"] == row_to_delete):
+            index_of_command_deleting=index
+        if(list_of_items[index_of_macro][index].grid_info()["row"] > row_to_delete): # this command is below the command want to delete
+            #updating label for this command
+            list_of_items[index_of_macro][index].winfo_children()[0].configure(text = str((index-5)//number_of_frames_in_macro_command) + ". Click Key: ")
+            #updating positions for all frames in this command
+            for command_frame_index in range(index,index+number_of_frames_in_macro_command):
+                frame = list_of_items[index_of_macro][command_frame_index]
+                frame.grid_configure(row=frame.grid_info()["row"] - 1)
+
+    #deleting command want to and removing from list
+    for i in range(number_of_frames_in_macro_command):
+        frame = list_of_items[index_of_macro][index_of_command_deleting]
+        frame.grid_forget()
+        frame.destroy()
+        del list_of_items[index_of_macro][index_of_command_deleting]
 
 #add new item
 def add_new():
@@ -610,6 +661,15 @@ def add_new():
         set_delay_seconds_label = Label(set_delay_frame,text="miliseconds",fg="white", bg="black",font=("Arial",15))
         set_delay_seconds_label.grid(row=0,column=2)
 
+        #delete button
+        delete_command_button_frame = Frame(mainframe)
+        delete_command_button_frame.grid(row=current_row+2,column=2, sticky=(N,E,S,W))
+        delete_command_button_frame.config(background="black")
+        list_of_items[len(list_of_items)-1].append(delete_command_button_frame)
+
+        delete_command_button = Button(delete_command_button_frame,text="Delete Command", fg="white", bg="black", activeforeground="white",activebackground="black")
+        delete_command_button.grid(row=0, column=0, padx=5)
+
         #add another command button
         add_another_command_frame = Frame(mainframe)
         add_another_command_frame.grid(row=current_row+3,column=0, sticky=(N,E,S,W))
@@ -621,6 +681,7 @@ def add_new():
 
         #setting up delete button
         delete_button.configure(command=lambda: delete_macro(type_delete_frame.grid_info()["row"]))
+        delete_command_button.configure(command=lambda: delete_macro_command(delete_command_button_frame.grid_info()["row"]))
 
 
 
@@ -682,6 +743,7 @@ list_of_checkbox_variables=[]
 list_of_active_items=[]
 most_recent_key_pressed=""
 shift_symbols = '~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?'
+number_of_frames_in_macro_command=3
 
 #---whatever---
 #adds spacing to each widget
