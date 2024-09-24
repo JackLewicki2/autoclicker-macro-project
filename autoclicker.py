@@ -1,6 +1,6 @@
-from tkinter import *
-import keyboard
-import mouse
+from tkinter import * #todo -> update readme to say ms means miliseconds
+import keyboard #todo -> change delay to be delay between each of a command's keypresses. Make no/empty input for key valid, and it will not press anything and then wait for delay.
+import mouse #todo -> type text option where can type multiple regular keys; option is delay between keystrokes 
 import time
 import threading
 #---classes---
@@ -40,10 +40,14 @@ class Macro: #obj = Macro(toggle_key,loop,command_list)
                 else:
                     key_click = command[0]
                 click_mouse=False
-            delay=float(command[1])
+           
+            time_hold=int(command[1])
+            times_repeat=int(command[2])
+            delay=int(command[3])
+
             if(delay==0):
                 delay=1
-            self.command_list.append([click_mouse,key_click,delay])
+            self.command_list.append([click_mouse, key_click, time_hold, times_repeat, delay])
         self.thread = None
         self.active=False
 
@@ -117,14 +121,22 @@ def change_mode():
                         if(key_click==""):
                             successful_add=False
                             break
+                        
+                        time_hold_repeat_frame = list_of_items[index][i+1]
+                        time_hold = time_hold_repeat_frame.winfo_children()[1].get()
+                        times_repeat = time_hold_repeat_frame.winfo_children()[4].get()
 
-                        set_delay_frame = list_of_items[index][i+1]
+                        if(time_hold=="" or times_repeat==""):
+                            successful_add=False
+                            break
+
+                        set_delay_frame = list_of_items[index][i+2]
                         delay = set_delay_frame.winfo_children()[1].get()
                         if(delay==""):
                             successful_add=False
                             break
 
-                        command_list.append([key_click,delay])
+                        command_list.append([key_click,time_hold,times_repeat,delay])
 
                     if(not successful_add):
                        continue
@@ -221,20 +233,30 @@ def autoclick(delay,item):
 def execute_macro(loop,command_list,item):
     while(item.active):
         for command in command_list:
-            if(not item.active):
-                return
-            if(command[0]): # command is (is_mouse, key_click, delay)
-                mouse.click(button=command[1])
-            else:
-                # print(item.key_click)
-                if(command[1][-1] == " "): #space at end means need a shift key
-                    keyboard.press("shift")
-                    keyboard.send(command[1][0])
-                    keyboard.release("shift")
+            for i in range(command[3]):
+                if(not item.active):
+                    return
+                if(command[0]): # command is (is_mouse, key_click, hold time, repeat x times, delay)
+                    mouse.press(button=command[1])
+                    time.sleep(command[2]/1000.0)
+                    mouse.release(button=command[1])
+                    # mouse.click(button=command[1])
                 else:
-                    keyboard.send(command[1])
-            # print("clicked")
-            time.sleep(command[2]/1000.0)
+                    # print(item.key_click)
+                    if(command[1][-1] == " "): #space at end means need a shift key
+                        keyboard.press("shift")
+                        keyboard.press(command[1][0])
+                        time.sleep(command[2]/1000.0)
+                        keyboard.release("shift")
+                        keyboard.release(command[1][0])
+                    else:
+                        # keyboard.send(command[1])
+                        keyboard.press(command[1])
+                        time.sleep(command[2]/1000.0)
+                        keyboard.release(command[1])
+                        
+                # print("clicked")
+                time.sleep(command[4]/1000.0)
         if(not loop):
             item.active=False
 
@@ -303,8 +325,8 @@ def store_key_in_textbox(event):
         else:
             event.widget.insert(0,most_recent_key_pressed)
 
-#makes sure can only type numbers in delay textbox
-def validate_delay(S):
+#makes sure can only type numbers in a textbox
+def validate_so_only_numbers(S):
     if(S.isnumeric()):
         return True
     return False
@@ -382,25 +404,52 @@ def add_new_command(current_row):
     mouse_button_selector_string.set("Left Click")
     mouse_button_selector.grid(row=0, column=2, padx=5)
 
+    #Set Time Hold For
+    set_time_hold_repeat_frame = Frame(mainframe)
+    set_time_hold_repeat_frame.grid(row=current_row,column=1, sticky=(N,E,S,W))
+    set_time_hold_repeat_frame.config(background="black")
+    list_of_items[index_of_item_adding].append(set_time_hold_repeat_frame)
+    
+    set_time_hold_label = Label(set_time_hold_repeat_frame,text="Hold for: ",fg="white", bg="black",font=("Arial",15))
+    set_time_hold_label.grid(row=0,column=0)
+    
+    only_numbers_validate_command = (set_time_hold_repeat_frame.register(validate_so_only_numbers),"%S")
+    set_time_hold_textbox=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
+    set_time_hold_textbox.grid(row=0,column=1)
+
+    set_time_hold_seconds_label = Label(set_time_hold_repeat_frame,text="ms",fg="white", bg="black",font=("Arial",15))
+    set_time_hold_seconds_label.grid(row=0,column=2)
+    
+    #Set Times Repeat
+    set_time_repeat_label = Label(set_time_hold_repeat_frame,text="Run: ",fg="white", bg="black",font=("Arial",15))
+    set_time_repeat_label.grid(row=0,column=3, padx=(5,0))
+
+    set_time_repeat_textbot=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
+    set_time_repeat_textbot.grid(row=0,column=4)
+    # set_time_repeat_textbot.configure(text="1")
+
+    set_time_repeat_times_label = Label(set_time_hold_repeat_frame,text="times",fg="white", bg="black",font=("Arial",15))
+    set_time_repeat_times_label.grid(row=0,column=5)
+
     #Set Delay
     set_delay_frame = Frame(mainframe)
-    set_delay_frame.grid(row=current_row,column=1, sticky=(N,E,S,W))
+    set_delay_frame.grid(row=current_row,column=2, sticky=(N,E,S,W))
     set_delay_frame.config(background="black")
     list_of_items[index_of_item_adding].append(set_delay_frame)
 
     set_delay_label = Label(set_delay_frame,text="Delay: ",fg="white", bg="black",font=("Arial",15))
-    set_delay_label.grid(row=0,column=0)
+    set_delay_label.grid(row=0,column=0,padx=(5,0))
 
-    set_delay_validate_command = (set_delay_frame.register(validate_delay),"%S")
-    set_delay_textbox=Entry(set_delay_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=10, validate="key", validatecommand=set_delay_validate_command)
+    set_delay_validate_command = (set_delay_frame.register(validate_so_only_numbers),"%S")
+    set_delay_textbox=Entry(set_delay_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=set_delay_validate_command)
     set_delay_textbox.grid(row=0,column=1)
 
-    set_delay_seconds_label = Label(set_delay_frame,text="miliseconds",fg="white", bg="black",font=("Arial",15))
+    set_delay_seconds_label = Label(set_delay_frame,text="ms",fg="white", bg="black",font=("Arial",15))
     set_delay_seconds_label.grid(row=0,column=2)
 
     #delete button
     delete_command_button_frame = Frame(mainframe)
-    delete_command_button_frame.grid(row=current_row,column=2, sticky=(N,E,S,W))
+    delete_command_button_frame.grid(row=current_row,column=3, sticky=(N,E,S,W))
     delete_command_button_frame.config(background="black")
     list_of_items[index_of_item_adding].append(delete_command_button_frame)
 
@@ -415,7 +464,9 @@ def delete_macro_command(row_to_delete):
     index_of_macro =-1
     #finding the index in list of items of the item we are deleting and moving items below up
     for list in list_of_items:
-        if(list[0].grid_info()["row"] <= row_to_delete):
+        if(list[0].grid_info()["row"] + 2 == row_to_delete and len(list) == 5 + number_of_frames_in_macro_command): #if only one command left
+            return
+        elif(list[0].grid_info()["row"] <= row_to_delete):
             index_of_macro+=1
         else:
             for frame in list:
@@ -543,13 +594,13 @@ def add_new():
         list_of_items[len(list_of_items)-1].append(set_delay_frame)
 
         set_delay_label = Label(set_delay_frame,text="Delay: ",fg="white", bg="black",font=("Arial",15))
-        set_delay_label.grid(row=0,column=0)
+        set_delay_label.grid(row=0,column=0,padx=(5,0))
 
-        set_delay_validate_command = (set_delay_frame.register(validate_delay),"%S")
-        set_delay_textbox=Entry(set_delay_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=10, validate="key", validatecommand=set_delay_validate_command)
+        set_delay_validate_command = (set_delay_frame.register(validate_so_only_numbers),"%S")
+        set_delay_textbox=Entry(set_delay_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=set_delay_validate_command)
         set_delay_textbox.grid(row=0,column=1)
 
-        set_delay_seconds_label = Label(set_delay_frame,text="miliseconds",fg="white", bg="black",font=("Arial",15))
+        set_delay_seconds_label = Label(set_delay_frame,text="ms",fg="white", bg="black",font=("Arial",15))
         set_delay_seconds_label.grid(row=0,column=2)
     elif(type=="Macro"):
         #moving add_frame down three
@@ -645,25 +696,52 @@ def add_new():
         mouse_button_selector_string.set("Left Click")
         mouse_button_selector.grid(row=0, column=2, padx=5)
 
+        #Set Time Hold For
+        set_time_hold_repeat_frame = Frame(mainframe)
+        set_time_hold_repeat_frame.grid(row=current_row+2,column=1, sticky=(N,E,S,W))
+        set_time_hold_repeat_frame.config(background="black")
+        list_of_items[len(list_of_items)-1].append(set_time_hold_repeat_frame)
+
+        set_time_hold_label = Label(set_time_hold_repeat_frame,text="Hold for: ",fg="white", bg="black",font=("Arial",15))
+        set_time_hold_label.grid(row=0,column=0)
+
+        only_numbers_validate_command = (set_time_hold_repeat_frame.register(validate_so_only_numbers),"%S")
+        set_time_hold_textbox=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
+        set_time_hold_textbox.grid(row=0,column=1)
+
+        set_time_hold_seconds_label = Label(set_time_hold_repeat_frame,text="ms",fg="white", bg="black",font=("Arial",15))
+        set_time_hold_seconds_label.grid(row=0,column=2)
+
+        #Set Times Repeat
+        set_time_repeat_label = Label(set_time_hold_repeat_frame,text="Run: ",fg="white", bg="black",font=("Arial",15))
+        set_time_repeat_label.grid(row=0,column=3, padx=(5,0))
+
+        set_time_repeat_textbot=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
+        set_time_repeat_textbot.grid(row=0,column=4)
+        # set_time_repeat_textbot.configure(text="1")
+
+        set_time_repeat_times_label = Label(set_time_hold_repeat_frame,text="times",fg="white", bg="black",font=("Arial",15))
+        set_time_repeat_times_label.grid(row=0,column=5)
+
         #Set Delay
         set_delay_frame = Frame(mainframe)
-        set_delay_frame.grid(row=current_row+2,column=1, sticky=(N,E,S,W))
+        set_delay_frame.grid(row=current_row+2,column=2, sticky=(N,E,S,W))
         set_delay_frame.config(background="black")
         list_of_items[len(list_of_items)-1].append(set_delay_frame)
 
         set_delay_label = Label(set_delay_frame,text="Delay: ",fg="white", bg="black",font=("Arial",15))
-        set_delay_label.grid(row=0,column=0)
+        set_delay_label.grid(row=0,column=0,padx=(5,0))
 
-        set_delay_validate_command = (set_delay_frame.register(validate_delay),"%S")
-        set_delay_textbox=Entry(set_delay_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=10, validate="key", validatecommand=set_delay_validate_command)
+        set_delay_validate_command = (set_delay_frame.register(validate_so_only_numbers),"%S")
+        set_delay_textbox=Entry(set_delay_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=set_delay_validate_command)
         set_delay_textbox.grid(row=0,column=1)
 
-        set_delay_seconds_label = Label(set_delay_frame,text="miliseconds",fg="white", bg="black",font=("Arial",15))
+        set_delay_seconds_label = Label(set_delay_frame,text="ms",fg="white", bg="black",font=("Arial",15))
         set_delay_seconds_label.grid(row=0,column=2)
 
         #delete button
         delete_command_button_frame = Frame(mainframe)
-        delete_command_button_frame.grid(row=current_row+2,column=2, sticky=(N,E,S,W))
+        delete_command_button_frame.grid(row=current_row+2,column=3, sticky=(N,E,S,W))
         delete_command_button_frame.config(background="black")
         list_of_items[len(list_of_items)-1].append(delete_command_button_frame)
 
@@ -743,7 +821,7 @@ list_of_checkbox_variables=[]
 list_of_active_items=[]
 most_recent_key_pressed=""
 shift_symbols = '~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?'
-number_of_frames_in_macro_command=3
+number_of_frames_in_macro_command=4
 
 #---whatever---
 #adds spacing to each widget

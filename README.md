@@ -26,8 +26,8 @@ None right now.
 <br/>
 <br/>
 --Possible Future Improvements--<br/>
-Delete button for individual macro commands<br/>
-Ability to set number of times a macro command executes<br/>
-Ability to set how long a click is held<br/>
+Delete button for individual macro commands✅<br/>
+Ability to set number of times a macro command executes✅<br/>
+Ability to set how long a click is held✅<br/>
 Ability to save the current configuration to a file.<br/>
 Ability to load a previous configuration from a file.<br/>
