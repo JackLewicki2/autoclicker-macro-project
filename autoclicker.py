@@ -1,21 +1,27 @@
-from tkinter import * #todo -> update readme to say ms means miliseconds
-import keyboard #todo -> change delay to be delay between each of a command's keypresses. Make no/empty input for key valid, and it will not press anything and then wait for delay.
-import mouse #todo -> type text option where can type multiple regular keys; option is delay between keystrokes 
+from tkinter import * #todo -> update readme to say ms means miliseconds and new meaning of delay
+import keyboard
+import mouse #todo -> type text option for macro where can type multiple regular keys; option is delay between keystrokes 
 import time
 import threading
+from enum import Enum
 #---classes---
+class command_type(Enum):
+    Mouse_Click=1
+    Keyboard_Press=2
+    Wait=3
+
 class Autoclicker:
     def __init__(self,toggle_key,key_click,delay):
         self.toggle_key = toggle_key
         if("Click" in key_click): # if is a mouse press
             self.key_click = key_click.split(" ")[0].lower()
-            self.click_mouse = True
+            self.type = command_type.Mouse_Click
         else: # otherwise is a keyboard press
             if(key_click in shift_symbols):
                 self.key_click = key_click + " " # add space at the end to indicate needs a shift key
             else:
                 self.key_click = key_click
-            self.click_mouse=False
+            self.type=command_type.Keyboard_Press
         self.delay=float(delay)
         if(self.delay==0):
             self.delay=1
@@ -31,15 +37,18 @@ class Macro: #obj = Macro(toggle_key,loop,command_list)
         self.loop=loop
         self.command_list=[]
         for command in command_list:
-            if("Click" in command[0]): # if is a mouse press
+            if(command[0]==""):
+                key_click=""
+                type=command_type.Wait
+            elif("Click" in command[0]): # if is a mouse press
                 key_click = command[0].split(" ")[0].lower()
-                click_mouse = True
+                type = command_type.Mouse_Click
             else: # otherwise is a keyboard press
                 if(command[0] in shift_symbols):
                     key_click = command[0] + " " # add space at the end to indicate needs a shift key
                 else:
                     key_click = command[0]
-                click_mouse=False
+                type=command_type.Keyboard_Press
            
             time_hold=int(command[1])
             times_repeat=int(command[2])
@@ -47,7 +56,7 @@ class Macro: #obj = Macro(toggle_key,loop,command_list)
 
             if(delay==0):
                 delay=1
-            self.command_list.append([click_mouse, key_click, time_hold, times_repeat, delay])
+            self.command_list.append([type, key_click, time_hold, times_repeat, delay])
         self.thread = None
         self.active=False
 
@@ -116,11 +125,14 @@ def change_mode():
                         widget_holding_key_click = key_click_frame.winfo_children()[2]
                         if(str(type(widget_holding_key_click)) == "<class 'tkinter.Entry'>"):
                             key_click = widget_holding_key_click.get()
+                            if(key_click==""):
+                                successful_add=False
+                                break
+                        elif(str(type(widget_holding_key_click)) == "<class 'tkinter.Label'>"):
+                            key_click=""
                         else:
                             key_click = widget_holding_key_click.getvar(str(widget_holding_key_click.cget("textvariable")))
-                        if(key_click==""):
-                            successful_add=False
-                            break
+                        
                         
                         time_hold_repeat_frame = list_of_items[index][i+1]
                         time_hold = time_hold_repeat_frame.winfo_children()[1].get()
@@ -160,44 +172,6 @@ def change_mode():
     #update current_mode_label
     current_mode_label.config(text="Current Mode: " + current_mode)
 
-# #converts a key in bad format to one Keyboard class can use
-# def convert_key(wrong_format_key):
-#     key_list = wrong_format_key.split("->")
-#     if(key_list[1].strip()==""):
-#         #special keyboard character like shift
-#         match key_list[0].strip():
-#             case "Escape":
-#                 return "esc"
-#             case "Tab":
-#                 return "tab"
-#             case "Caps_Lock":
-#                 return "caps lock"
-#             case "Shift_L":
-#                 return "shift"
-#             case "Control_L":
-#                 return "ctrl"
-#             case "Win_L":
-#                 return "left windows"
-#             case "Alt_L":
-#                 return "alt"
-#             case " ":
-#                 return "space"
-#             case "Alt_R":
-#                 return "right alt"
-#             case "Control_R":
-#                 return "right ctrl"
-#             case "Shift_R":
-#                 return "right shift"
-#             case "Return":
-#                 return "enter"
-#             case "BackSpace":
-#                 return "backspace"
-#             case _:
-#                 return key_list[0].lower().strip()     
-#     else:
-#         #regular keyboard character
-#         return key_list[1].strip()
-
 #clicked a key
 def clicked_key(event):
     global most_recent_key_pressed
@@ -217,9 +191,9 @@ def clicked_key(event):
 #autoclick
 def autoclick(delay,item):
     while(item.active):
-        if(item.click_mouse):
+        if(item.type==command_type.Mouse_Click):
             mouse.click(button=item.key_click)
-        else:
+        elif(item.type==command_type.Keyboard_Press):
             if(item.key_click[-1] == " "):
                 keyboard.press("shift")
                 keyboard.send(item.key_click[0])
@@ -236,12 +210,14 @@ def execute_macro(loop,command_list,item):
             for i in range(command[3]):
                 if(not item.active):
                     return
-                if(command[0]): # command is (is_mouse, key_click, hold time, repeat x times, delay)
+                if(command[0]==command_type.Mouse_Click): # command is (type, key_click, hold time, repeat x times, delay)
                     mouse.press(button=command[1])
                     time.sleep(command[2]/1000.0)
                     mouse.release(button=command[1])
                     # mouse.click(button=command[1])
-                else:
+                elif(command[0]==command_type.Wait):
+                    time.sleep(command[2]/1000.0)
+                elif(command[0]==command_type.Keyboard_Press):
                     # print(item.key_click)
                     if(command[1][-1] == " "): #space at end means need a shift key
                         keyboard.press("shift")
@@ -348,12 +324,15 @@ def mouse_or_keyboard_selector_update(new_selection, current_frame):
         mouse_button_selector["menu"].config(bg="black",fg="white")
         mouse_button_selector_string.set("Left Click")
         mouse_button_selector.grid(row=0, column=2, padx=5)
-    else:
+    elif (new_selection=="Keyboard"):
         click_key_string = StringVar()
         click_key_string.trace_add("write", lambda name, index, mode: strip_string_variable(click_key_string))
         click_key_textbox=Entry(current_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=14, textvariable=click_key_string)
         click_key_textbox.bind("<Key>",store_key_in_textbox)
         click_key_textbox.grid(row=0,column=2, padx=5)
+    elif(new_selection=="Wait"):
+        label_so_dont_crash = Label(current_frame,bg="black", text="")
+        label_so_dont_crash.grid(row=0, column=2, padx=5)
 
 #add new command
 def add_new_command(current_row):
@@ -387,7 +366,7 @@ def add_new_command(current_row):
     set_click_key_label.grid(row=0,column=0)
 
     mouse_or_keyboard_selector_string=StringVar()
-    mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
+    mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard","Wait", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
     mouse_or_keyboard_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
     mouse_or_keyboard_selector["menu"].config(bg="black",fg="white")
     mouse_or_keyboard_selector_string.set("Mouse")
@@ -416,6 +395,7 @@ def add_new_command(current_row):
     only_numbers_validate_command = (set_time_hold_repeat_frame.register(validate_so_only_numbers),"%S")
     set_time_hold_textbox=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
     set_time_hold_textbox.grid(row=0,column=1)
+    set_time_hold_textbox.insert(0,"0")
 
     set_time_hold_seconds_label = Label(set_time_hold_repeat_frame,text="ms",fg="white", bg="black",font=("Arial",15))
     set_time_hold_seconds_label.grid(row=0,column=2)
@@ -424,9 +404,9 @@ def add_new_command(current_row):
     set_time_repeat_label = Label(set_time_hold_repeat_frame,text="Run: ",fg="white", bg="black",font=("Arial",15))
     set_time_repeat_label.grid(row=0,column=3, padx=(5,0))
 
-    set_time_repeat_textbot=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
-    set_time_repeat_textbot.grid(row=0,column=4)
-    # set_time_repeat_textbot.configure(text="1")
+    set_time_repeat_textbox=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
+    set_time_repeat_textbox.grid(row=0,column=4)
+    set_time_repeat_textbox.insert(0,"1")
 
     set_time_repeat_times_label = Label(set_time_hold_repeat_frame,text="times",fg="white", bg="black",font=("Arial",15))
     set_time_repeat_times_label.grid(row=0,column=5)
@@ -679,7 +659,7 @@ def add_new():
         set_click_key_label.grid(row=0,column=0)
 
         mouse_or_keyboard_selector_string=StringVar()
-        mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
+        mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard","Wait", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
         mouse_or_keyboard_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
         mouse_or_keyboard_selector["menu"].config(bg="black",fg="white")
         mouse_or_keyboard_selector_string.set("Mouse")
@@ -708,6 +688,7 @@ def add_new():
         only_numbers_validate_command = (set_time_hold_repeat_frame.register(validate_so_only_numbers),"%S")
         set_time_hold_textbox=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
         set_time_hold_textbox.grid(row=0,column=1)
+        set_time_hold_textbox.insert(0,"0")#todo -> might need to change to 1? I don't think so, but I will leave this comment in case becomes a problem.
 
         set_time_hold_seconds_label = Label(set_time_hold_repeat_frame,text="ms",fg="white", bg="black",font=("Arial",15))
         set_time_hold_seconds_label.grid(row=0,column=2)
@@ -716,9 +697,9 @@ def add_new():
         set_time_repeat_label = Label(set_time_hold_repeat_frame,text="Run: ",fg="white", bg="black",font=("Arial",15))
         set_time_repeat_label.grid(row=0,column=3, padx=(5,0))
 
-        set_time_repeat_textbot=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
-        set_time_repeat_textbot.grid(row=0,column=4)
-        # set_time_repeat_textbot.configure(text="1")
+        set_time_repeat_textbox=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
+        set_time_repeat_textbox.grid(row=0,column=4)
+        set_time_repeat_textbox.insert(0,"1")
 
         set_time_repeat_times_label = Label(set_time_hold_repeat_frame,text="times",fg="white", bg="black",font=("Arial",15))
         set_time_repeat_times_label.grid(row=0,column=5)
