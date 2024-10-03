@@ -1,7 +1,8 @@
 from tkinter import * #todo -> update readme to say ms means miliseconds and new meaning of delay
+from tkinter import filedialog
 import keyboard
 import mouse #todo -> type text option for macro where can type multiple regular keys; option is delay between keystrokes 
-import time
+import time #todo -> lots of testing, update exe, update read me, 
 import threading
 from enum import Enum
 #---classes---
@@ -81,6 +82,8 @@ def change_mode():
         add_button.configure(state="disabled")
         type_selector_label.configure(state="disabled")
         type_selector.configure(state="disabled")
+        file_load_button.configure(state="disabled")
+        file_save_button.configure(state="disabled")
 
         #sets up list to hold object of the active items
         list_of_active_items=[]
@@ -169,6 +172,8 @@ def change_mode():
         add_button.configure(state="normal")
         type_selector_label.configure(state="normal")
         type_selector.configure(state="normal")
+        file_load_button.configure(state="normal")
+        file_save_button.configure(state="normal")
     #update current_mode_label
     current_mode_label.config(text="Current Mode: " + current_mode)
 
@@ -256,8 +261,9 @@ def delete_autoclicker(current_row):
     del list_of_items[index_of_item_deleting]
     del list_of_checkbox_variables[index_of_item_deleting]
 
-    #moving the add_frame up
+    #moving the add_frame and file_load_save_frame up
     add_frame.grid_configure(row=add_frame.grid_info()["row"] -2)
+    file_load_save_frame.grid_configure(row=file_load_save_frame.grid_info()["row"] -2)
 
 #delete macro button
 def delete_macro(current_row):
@@ -282,8 +288,9 @@ def delete_macro(current_row):
     del list_of_items[index_of_item_deleting]
     del list_of_checkbox_variables[index_of_item_deleting]
 
-    #moving the add_frame up
+    #moving the add_frame and file_load_save_frame up
     add_frame.grid_configure(row=add_frame.grid_info()["row"] - 3 - number_of_commands)
+    file_load_save_frame.grid_configure(row=file_load_save_frame.grid_info()["row"] - 3 - number_of_commands)
 
 #gets rid of the ' ' when type space key in an entry box
 def strip_string_variable(string_variable):
@@ -291,7 +298,8 @@ def strip_string_variable(string_variable):
 
 #sets toggle key and click key
 def store_key_in_textbox(event):
-    # print("most recent pressed:",most_recent_key_pressed)
+    global most_recent_key_pressed
+    print("most recent pressed:",most_recent_key_pressed) #todo -> I have no idea why but having this uncommented fixes a bug with hitting different keys too fast
     # print("current textbox: ", event.widget.get())
     # print("keysym (thing on left)",event.keysym)
     event.widget.delete(0,END)
@@ -334,6 +342,198 @@ def mouse_or_keyboard_selector_update(new_selection, current_frame):
         label_so_dont_crash = Label(current_frame,bg="black", text="")
         label_so_dont_crash.grid(row=0, column=2, padx=5)
 
+def load_file():
+    global list_of_items
+    global type_selector_string
+    global number_of_frames_in_macro_command
+
+    file_path = filedialog.askopenfilename(title = "Choose file to load", filetypes=(("Text Files",".txt"),))
+    if(file_path == ""):
+        return
+    file = open(file_path, "r")
+    items = file.read().split("\n")
+    # print(items)
+    for item in items:
+        item_data = item.split(" ")
+        # print(item_data)
+        if(item_data[2]=="Autoclicker"):
+            #adding the autoclicker
+            type_selector_string.set("Autoclicker")
+            add_new()
+
+            item_just_added = list_of_items[len(list_of_items)-1]
+            #setting active checkbox
+            checkbox_name_frame = item_just_added[0]
+            if(item_data[0] == "True"):
+                checkbox_name_frame.winfo_children()[1].select()
+            #setting name
+            checkbox_name_frame.winfo_children()[3].insert(0, item_data[1].replace("_$"," "))
+            
+            #setting toggle key
+            toggle_key_frame=item_just_added[2]
+            if(item_data[3]!="_"):
+                toggle_key_frame.winfo_children()[1].insert(0, item_data[3].replace("_"," "))
+            else:
+                toggle_key_frame.winfo_children()[1].insert(0, item_data[3])
+
+            #setting click key
+            set_click_key_frame=item_just_added[3]
+            type_selector = set_click_key_frame.winfo_children()[1]
+            type_selector.setvar(name=str(type_selector.cget("textvariable")), value=item_data[4])
+            mouse_or_keyboard_selector_update(item_data[4], set_click_key_frame)
+            if (item_data[4]=="Mouse"):
+                button_click_selector = set_click_key_frame.winfo_children()[2]
+                button_click_selector.setvar(name=str(button_click_selector.cget("textvariable")), value=item_data[5].replace("_"," "))
+            elif (item_data[4]=="Keyboard"):
+                if(item_data[5]!="_"):
+                    set_click_key_frame.winfo_children()[2].insert(0, item_data[5].replace("_"," "))
+                else:
+                    set_click_key_frame.winfo_children()[2].insert(0, item_data[5])
+
+            #setting delay
+            set_delay_frame=item_just_added[4]
+            set_delay_frame.winfo_children()[1].insert(0, item_data[6])
+
+        elif(item_data[2]=="Macro"):
+            #adding the macro
+            type_selector_string.set("Macro")
+            add_new()
+
+            item_just_added = list_of_items[len(list_of_items)-1]
+            #setting active checkbox
+            checkbox_name_frame = item_just_added[0]
+            if(item_data[0] == "True"):
+                checkbox_name_frame.winfo_children()[1].select()
+            #setting name
+            checkbox_name_frame.winfo_children()[3].insert(0, item_data[1].replace("_$"," "))
+            
+            #setting toggle key
+            toggle_key_frame=item_just_added[2]
+            if(item_data[3]!="_"):
+                toggle_key_frame.winfo_children()[1].insert(0, item_data[3].replace("_"," "))
+            else:
+                toggle_key_frame.winfo_children()[1].insert(0, item_data[3])
+
+            #setting loop checkbox
+            loop_frame = item_just_added[3]
+            if(item_data[4] == "True"):
+                loop_frame.winfo_children()[1].select()
+
+            for command_index in range(5, len(item_data)):
+                #calling add new command if have more than one command
+                if(command_index>5):
+                    add_new_command(1+item_just_added[5 + (command_index-6)*number_of_frames_in_macro_command].grid_info()["row"])
+
+                command_data = item_data[command_index].split("_$")
+                #setting click key
+                set_click_key_frame=item_just_added[5 + (command_index-5)*number_of_frames_in_macro_command]
+                type_selector = set_click_key_frame.winfo_children()[1]
+                type_selector.setvar(name=str(type_selector.cget("textvariable")), value=command_data[0])
+                mouse_or_keyboard_selector_update(command_data[0], set_click_key_frame)
+                if (command_data[0]=="Mouse"):
+                    button_click_selector = set_click_key_frame.winfo_children()[2]
+                    button_click_selector.setvar(name=str(button_click_selector.cget("textvariable")), value=command_data[1].replace("_"," "))
+                elif (command_data[0]=="Keyboard"):
+                    if(command_data[1]!="_"):
+                        set_click_key_frame.winfo_children()[2].insert(0, command_data[1].replace("_"," "))
+                    else:
+                        set_click_key_frame.winfo_children()[2].insert(0, command_data[1])
+
+                #setting time hold for
+                set_time_hold_repeat_frame=item_just_added[6 + (command_index-5)*number_of_frames_in_macro_command]
+                set_time_hold_repeat_frame.winfo_children()[1].delete(0, END)
+                set_time_hold_repeat_frame.winfo_children()[1].insert(0, command_data[2])
+                #setting time repeat
+                set_time_hold_repeat_frame.winfo_children()[4].delete(0, END)
+                set_time_hold_repeat_frame.winfo_children()[4].insert(0, command_data[3])
+
+                #setting delay
+                set_delay_frame=item_just_added[7 + (command_index-5)*number_of_frames_in_macro_command]
+                set_delay_frame.winfo_children()[1].insert(0, command_data[4])
+    file.close()
+
+def save_file():
+    file_text=""
+    for index in range(len(list_of_items)):
+        file_text+=str(list_of_checkbox_variables[index].get())+" " #checkbox
+        file_text+=list_of_items[index][0].winfo_children()[3].get().replace(" ","_$")+" " # name
+        
+        if(len(list_of_items[index])==5): # length 5 means is autoclicker. A bigger length means is a macro.
+            file_text+="Autoclicker "
+
+            toggle_key_frame = list_of_items[index][2]
+            toggle_key = toggle_key_frame.winfo_children()[1].get().replace(" ","_")
+            file_text+=toggle_key+" "
+            
+            key_click_frame = list_of_items[index][3]
+            widget_holding_key_click = key_click_frame.winfo_children()[2]
+            if(str(type(widget_holding_key_click)) == "<class 'tkinter.Entry'>"):
+                key_click = widget_holding_key_click.get()
+                key_click = key_click.replace(" ","_")
+                file_text+="Keyboard "
+            else:
+                key_click = widget_holding_key_click.getvar(str(widget_holding_key_click.cget("textvariable")))
+                key_click = key_click.replace(" ","_")
+                file_text+="Mouse "
+            file_text+=key_click+" "
+
+            set_delay_frame = list_of_items[index][4]
+            delay = set_delay_frame.winfo_children()[1].get()
+            file_text+=delay
+        else:
+            file_text+="Macro "
+            
+            toggle_key_frame = list_of_items[index][2]
+            toggle_key = toggle_key_frame.winfo_children()[1].get()
+            file_text+=toggle_key+" "
+            
+            loop_checkbox_frame = list_of_items[index][3]
+            widget_holding_loop_checkbox = loop_checkbox_frame.winfo_children()[1]
+            widget_holding_loop_checkbox.configure(state="disabled") # if havent interacted with checkbox yet will crash unless set state to disabled beforehand for some reason???
+            loop = widget_holding_loop_checkbox.getvar(str(widget_holding_loop_checkbox.cget("variable")))
+            widget_holding_loop_checkbox.configure(state="normal")
+            if loop==1: # this is just so loop and active are both stored as True/False instead of being stored differently
+                loop="True"
+            else:
+                loop="False"
+            file_text+=loop+" "
+
+            for i in range(5,len(list_of_items[index]),number_of_frames_in_macro_command):
+                key_click_frame = list_of_items[index][i]
+                widget_holding_key_click = key_click_frame.winfo_children()[2]
+                if(str(type(widget_holding_key_click)) == "<class 'tkinter.Entry'>"):
+                    key_click = widget_holding_key_click.get()
+                    file_text+="Keyboard_$" #todo -> come up with way to generate seperator so no matches if do the text option for macros later or just say don't do this combo of characters lol
+                elif(str(type(widget_holding_key_click)) == "<class 'tkinter.Label'>"):
+                    key_click=""
+                    file_text+="Wait_$"
+                else:
+                    key_click = widget_holding_key_click.getvar(str(widget_holding_key_click.cget("textvariable")))
+                    key_click = key_click.replace(" ","_")
+                    file_text+="Mouse_$"
+                file_text+=key_click+"_$"
+
+                time_hold_repeat_frame = list_of_items[index][i+1]
+                time_hold = time_hold_repeat_frame.winfo_children()[1].get()
+                file_text+=time_hold+"_$"
+                times_repeat = time_hold_repeat_frame.winfo_children()[4].get()
+                file_text+=times_repeat+"_$"
+                    
+                set_delay_frame = list_of_items[index][i+2]
+                delay = set_delay_frame.winfo_children()[1].get()
+                file_text+=delay
+
+                if(i!=len(list_of_items[index])-number_of_frames_in_macro_command):
+                    file_text+=" "
+        if(index!=len(list_of_items)-1):
+            file_text+="\n"
+
+    file=filedialog.asksaveasfile(defaultextension=".txt", filetypes=[("Text File",".txt")])
+    if(file is None):
+        return
+    file.write(file_text)
+    file.close()
+
 #add new command
 def add_new_command(current_row):
     global list_of_items
@@ -351,8 +551,9 @@ def add_new_command(current_row):
 
     number_of_commands = (len(list_of_items[index_of_item_adding])-5)//number_of_frames_in_macro_command + 1
 
-    #moving add frame
+    #moving add frame and file_load_save_frame
     add_frame.grid_configure(row=add_frame.grid_info()["row"] + 1)
+    file_load_save_frame.grid_configure(row=file_load_save_frame.grid_info()["row"] + 1)
     #moving add new command button
     list_of_items[index_of_item_adding][4].grid_configure(row=current_row + 1)
 
@@ -453,8 +654,9 @@ def delete_macro_command(row_to_delete):
                 if(frame.grid_info()["row"] > row_to_delete):
                     frame.grid_configure(row=frame.grid_info()["row"] - 1) 
     
-    #moving add frame
+    #moving add frame and file_load_save_frame
     add_frame.grid_configure(row=add_frame.grid_info()["row"] - 1)
+    file_load_save_frame.grid_configure(row=file_load_save_frame.grid_info()["row"] - 1)
     #moving add new command button
     list_of_items[index_of_macro][4].grid_configure(row=list_of_items[index_of_macro][4].grid_info()["row"] - 1)
     
@@ -488,8 +690,10 @@ def add_new():
     list_of_items.append([])
 
     if(type=="Autoclicker"):
-        #moving add_frame down two
+        #moving add_frame and file_load_save_frame down two
         add_frame.grid_configure(row=current_row+2)
+        file_load_save_frame.grid_configure(row=current_row+2)
+        
 
         #active label and active checkbox
         checkbox_name_frame = Frame(mainframe)
@@ -583,8 +787,9 @@ def add_new():
         set_delay_seconds_label = Label(set_delay_frame,text="ms",fg="white", bg="black",font=("Arial",15))
         set_delay_seconds_label.grid(row=0,column=2)
     elif(type=="Macro"):
-        #moving add_frame down three
+        #moving add_frame and file_load_save_frame down
         add_frame.grid_configure(row=current_row+4)
+        file_load_save_frame.grid_configure(row=current_row+4)
 
         #active label and active checkbox
         checkbox_name_frame = Frame(mainframe)
@@ -742,8 +947,6 @@ def add_new():
         delete_button.configure(command=lambda: delete_macro(type_delete_frame.grid_info()["row"]))
         delete_command_button.configure(command=lambda: delete_macro_command(delete_command_button_frame.grid_info()["row"]))
 
-
-
 #---setting up window---
 window = Tk() # instantiates an instance of a window
 window.title("Macro App") # title of window
@@ -793,6 +996,19 @@ type_selector.configure(bg="black", fg="white", activebackground="black",activef
 type_selector["menu"].config(bg="black",fg="white")
 type_selector_string.set("Autoclicker")
 type_selector.grid(row=0, column=2)
+
+#file load/save frame
+file_load_save_frame = Frame(mainframe)
+file_load_save_frame.grid(row=1, column=1, sticky=(N,E,S,W))
+file_load_save_frame.configure(background="black")
+
+#File Load Button
+file_load_button = Button(file_load_save_frame,text="Load File", command=load_file, fg="white", bg="black", activeforeground="white",activebackground="black",font=("Arial",15))
+file_load_button.grid(row=0, column=0)
+
+#File Save Button
+file_save_button = Button(file_load_save_frame,text="Save File", command=save_file, fg="white", bg="black", activeforeground="white",activebackground="black",font=("Arial",15))
+file_save_button.grid(row=0, column=1)
 
 
 
