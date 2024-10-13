@@ -1,8 +1,8 @@
-from tkinter import * #todo -> update readme to say ms means miliseconds and new meaning of delay
+from tkinter import *
 from tkinter import filedialog
-import keyboard
+import keyboard #todo -> add mouse movement
 import mouse #todo -> type text option for macro where can type multiple regular keys; option is delay between keystrokes 
-import time #todo -> lots of testing, update exe, update read me, 
+import time
 import threading
 from enum import Enum
 #---classes---
@@ -71,7 +71,9 @@ def change_mode():
     global current_mode
     global list_of_active_items
     global number_of_frames_in_macro_command
+    global num_caps_lock_presses
     if(current_mode=="Edit"): # changing mode to running
+        num_caps_lock_presses=0
         change_mode_button.config(text="Change Mode to " + current_mode)
         current_mode="Running"
         #disable all settings while running
@@ -180,19 +182,29 @@ def change_mode():
 #clicked a key
 def clicked_key(event):
     global most_recent_key_pressed
+    global num_caps_lock_presses
     most_recent_key_pressed=event.name
+    if(most_recent_key_pressed=="caps lock"):
+        num_caps_lock_presses+=1
+    else:
+        num_caps_lock_presses=0
+    # print("most recent pressedx2 ",most_recent_key_pressed)
     # print("keyboard event",event.name,event.scan_code)
     if(current_mode=="Running"):
-        for item in list_of_active_items:
-            # print("item key",item.key)
-            if(item.toggle_key==event.name):
-                # print("active mode")
-                if(item.active):
-                    item.active=False
-                else:
-                    item.active=True
-                    item.make_thread()
-                    item.thread.start()
+        if(num_caps_lock_presses>=3):
+            num_caps_lock_presses=0
+            change_mode()
+        else:
+            for item in list_of_active_items:
+                # print("item key",item.key)
+                if(item.toggle_key==event.name):
+                    # print("active mode")
+                    if(item.active):
+                        item.active=False
+                    else:
+                        item.active=True
+                        item.make_thread()
+                        item.thread.start()
 #autoclick
 def autoclick(delay,item):
     while(item.active):
@@ -201,10 +213,13 @@ def autoclick(delay,item):
         elif(item.type==command_type.Keyboard_Press):
             if(item.key_click[-1] == " "):
                 keyboard.press("shift")
-                keyboard.send(item.key_click[0])
-                keyboard.release("shift")
+                keyboard.send(item.key_click[0].lower())
+                if (not keyboard.is_pressed("shift")):
+                    keyboard.release("shift")
             else:
-                keyboard.send(item.key_click)
+                keyboard.press(item.key_click)
+                if(not keyboard.is_pressed(item.key_click)): # Needed if command[1] is shift
+                    keyboard.release(item.key_click)
         # print("clicked")
         time.sleep(delay/1000.0)
 
@@ -217,7 +232,7 @@ def execute_macro(loop,command_list,item):
                     return
                 if(command[0]==command_type.Mouse_Click): # command is (type, key_click, hold time, repeat x times, delay)
                     mouse.press(button=command[1])
-                    time.sleep(command[2]/1000.0)
+                    time.sleep(command[2]/1000.0) # I don't think the if(not is pressed) is needed with the mouse
                     mouse.release(button=command[1])
                     # mouse.click(button=command[1])
                 elif(command[0]==command_type.Wait):
@@ -228,13 +243,17 @@ def execute_macro(loop,command_list,item):
                         keyboard.press("shift")
                         keyboard.press(command[1][0])
                         time.sleep(command[2]/1000.0)
-                        keyboard.release("shift")
+                        if(not keyboard.is_pressed("shift")): # this doesn't count the shift it pressed down right above; just if actual shift is pressed down
+                            print("releasing shift")
+                            keyboard.release("shift")
+                        # if(not keyboard.is_pressed(command[1][0])):
                         keyboard.release(command[1][0])
                     else:
                         # keyboard.send(command[1])
                         keyboard.press(command[1])
                         time.sleep(command[2]/1000.0)
-                        keyboard.release(command[1])
+                        if(not keyboard.is_pressed(command[1])): # Needed if command[1] is shift
+                            keyboard.release(command[1])
                         
                 # print("clicked")
                 time.sleep(command[4]/1000.0)
@@ -367,7 +386,7 @@ def load_file():
             if(item_data[0] == "True"):
                 checkbox_name_frame.winfo_children()[1].select()
             #setting name
-            checkbox_name_frame.winfo_children()[3].insert(0, item_data[1].replace("_$"," "))
+            checkbox_name_frame.winfo_children()[3].insert(0, item_data[1].replace("_$$$_"," "))
             
             #setting toggle key
             toggle_key_frame=item_just_added[2]
@@ -405,7 +424,7 @@ def load_file():
             if(item_data[0] == "True"):
                 checkbox_name_frame.winfo_children()[1].select()
             #setting name
-            checkbox_name_frame.winfo_children()[3].insert(0, item_data[1].replace("_$"," "))
+            checkbox_name_frame.winfo_children()[3].insert(0, item_data[1].replace("_$$$_"," "))
             
             #setting toggle key
             toggle_key_frame=item_just_added[2]
@@ -424,7 +443,7 @@ def load_file():
                 if(command_index>5):
                     add_new_command(1+item_just_added[5 + (command_index-6)*number_of_frames_in_macro_command].grid_info()["row"])
 
-                command_data = item_data[command_index].split("_$")
+                command_data = item_data[command_index].split("_$$$_")
                 #setting click key
                 set_click_key_frame=item_just_added[5 + (command_index-5)*number_of_frames_in_macro_command]
                 type_selector = set_click_key_frame.winfo_children()[1]
@@ -453,10 +472,12 @@ def load_file():
     file.close()
 
 def save_file():
+    if(len(list_of_items)==0):
+        return
     file_text=""
     for index in range(len(list_of_items)):
         file_text+=str(list_of_checkbox_variables[index].get())+" " #checkbox
-        file_text+=list_of_items[index][0].winfo_children()[3].get().replace(" ","_$")+" " # name
+        file_text+=list_of_items[index][0].winfo_children()[3].get().replace(" ","_$$$_")+" " # name
         
         if(len(list_of_items[index])==5): # length 5 means is autoclicker. A bigger length means is a macro.
             file_text+="Autoclicker "
@@ -503,21 +524,21 @@ def save_file():
                 widget_holding_key_click = key_click_frame.winfo_children()[2]
                 if(str(type(widget_holding_key_click)) == "<class 'tkinter.Entry'>"):
                     key_click = widget_holding_key_click.get()
-                    file_text+="Keyboard_$" #todo -> come up with way to generate seperator so no matches if do the text option for macros later or just say don't do this combo of characters lol
+                    file_text+="Keyboard_$$$_"
                 elif(str(type(widget_holding_key_click)) == "<class 'tkinter.Label'>"):
                     key_click=""
-                    file_text+="Wait_$"
+                    file_text+="Wait_$$$_"
                 else:
                     key_click = widget_holding_key_click.getvar(str(widget_holding_key_click.cget("textvariable")))
                     key_click = key_click.replace(" ","_")
-                    file_text+="Mouse_$"
-                file_text+=key_click+"_$"
+                    file_text+="Mouse_$$$_"
+                file_text+=key_click+"_$$$_"
 
                 time_hold_repeat_frame = list_of_items[index][i+1]
                 time_hold = time_hold_repeat_frame.winfo_children()[1].get()
-                file_text+=time_hold+"_$"
+                file_text+=time_hold+"_$$$_"
                 times_repeat = time_hold_repeat_frame.winfo_children()[4].get()
-                file_text+=times_repeat+"_$"
+                file_text+=times_repeat+"_$$$_"
                     
                 set_delay_frame = list_of_items[index][i+2]
                 delay = set_delay_frame.winfo_children()[1].get()
@@ -1019,6 +1040,7 @@ list_of_active_items=[]
 most_recent_key_pressed=""
 shift_symbols = '~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?'
 number_of_frames_in_macro_command=4
+num_caps_lock_presses=0
 
 #---whatever---
 #adds spacing to each widget
