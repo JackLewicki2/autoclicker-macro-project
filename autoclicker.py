@@ -1,15 +1,17 @@
 from tkinter import *
 from tkinter import filedialog
 import keyboard #todo -> add mouse movement
-import mouse #todo -> type text option for macro where can type multiple regular keys; option is delay between keystrokes 
-import time
-import threading
+import mouse
+import time #todo -> maybe change run to repeat?
+import threading #decided to make shift always lift up. Only problem if typing with shift and do a macro then shift will be deselected. Is better than getting stuck in perma shift imo.
 from enum import Enum
 #---classes---
 class command_type(Enum):
     Mouse_Click=1
     Keyboard_Press=2
     Wait=3
+    Text=4
+    Move_Mouse=5
 
 class Autoclicker:
     def __init__(self,toggle_key,key_click,delay):
@@ -32,32 +34,50 @@ class Autoclicker:
     def make_thread(self):
         self.thread = threading.Thread(target=lambda:autoclick(self.delay,self), daemon=True)
 
-class Macro: #obj = Macro(toggle_key,loop,command_list)
+class Macro: #obj = Macro(type_of_command, toggle_key,loop,command_list)
     def __init__(self,toggle_key,loop, command_list):
         self.toggle_key = toggle_key
         self.loop=loop
         self.command_list=[]
         for command in command_list:
-            if(command[0]==""):
-                key_click=""
-                type=command_type.Wait
-            elif("Click" in command[0]): # if is a mouse press
-                key_click = command[0].split(" ")[0].lower()
-                type = command_type.Mouse_Click
-            else: # otherwise is a keyboard press
-                if(command[0] in shift_symbols):
-                    key_click = command[0] + " " # add space at the end to indicate needs a shift key
-                else:
-                    key_click = command[0]
-                type=command_type.Keyboard_Press
-           
-            time_hold=int(command[1])
-            times_repeat=int(command[2])
-            delay=int(command[3])
+            if(command[0]==command_type.Text): #[type_of_command, text_in_textbox, time_per_char, times_repeat]
+                type=command[0]
+                character_list=[]
+                for character in command[1]:
+                   if(character in shift_symbols):
+                        if(character=="+"):
+                            character="="
+                        character_list.append(character.lower()+" ")  # add space at the end to indicate needs a shift key
+                   elif(character==" "):
+                        character_list.append("space")
+                   else:
+                        character_list.append(character)
+                time_per_char=int(command[2])
+                times_repeat=int(command[3])
+                self.command_list.append([type, character_list, time_per_char, times_repeat,0])
+            elif(command[0]==command_type.Move_Mouse):
+                pass
+            else:
+                if(command[0]==command_type.Wait):
+                    key_click=""
+                elif(command[0]==command_type.Mouse_Click): # if is a mouse press
+                    key_click = command[1].split(" ")[0].lower()
+                elif(command[0]==command_type.Keyboard_Press): # if is a keyboard press
+                    if(command[1] in shift_symbols):
+                        if(command[1]=="+"):
+                            command[1]="="
+                        key_click = command[1].lower() + " " # add space at the end to indicate needs a shift key
+                    else:
+                        key_click = command[1]
+            
+                type=command[0]
+                time_hold=int(command[2])
+                times_repeat=int(command[3])
+                delay=int(command[4])
 
-            if(delay==0):
-                delay=1
-            self.command_list.append([type, key_click, time_hold, times_repeat, delay])
+                if(delay==0): # todo -> maybe change this
+                    delay=1
+                self.command_list.append([type, key_click, time_hold, times_repeat, delay])
         self.thread = None
         self.active=False
 
@@ -113,7 +133,7 @@ def change_mode():
 
                     obj = Autoclicker(toggle_key,key_click,delay)
                     list_of_active_items.append(obj)
-                else:
+                else: # macro
                     toggle_key_frame = list_of_items[index][2]
                     toggle_key = toggle_key_frame.winfo_children()[1].get()
                     if(toggle_key==""):
@@ -127,33 +147,63 @@ def change_mode():
                     successful_add = True
                     for i in range(5,len(list_of_items[index]),number_of_frames_in_macro_command):
                         key_click_frame = list_of_items[index][i]
+                        widget_holding_type = key_click_frame.winfo_children()[1]
+                        type_of_command_string = widget_holding_type.getvar(str(widget_holding_type.cget("textvariable")))
                         widget_holding_key_click = key_click_frame.winfo_children()[2]
-                        if(str(type(widget_holding_key_click)) == "<class 'tkinter.Entry'>"):
-                            key_click = widget_holding_key_click.get()
-                            if(key_click==""):
+                        
+                        if(type_of_command_string=="Text"):
+                            type_of_command = command_type.Text
+                            text_in_textbox = widget_holding_key_click.get()
+
+                            if(text_in_textbox==""):
                                 successful_add=False
                                 break
-                        elif(str(type(widget_holding_key_click)) == "<class 'tkinter.Label'>"):
-                            key_click=""
+
+                            time_hold_repeat_frame = list_of_items[index][i+1]
+                            time_per_char = time_hold_repeat_frame.winfo_children()[1].get()
+
+                            if(time_per_char==""):
+                                successful_add=False
+                                break
+
+                            set_delay_frame = list_of_items[index][i+2]
+                            times_repeat = set_delay_frame.winfo_children()[1].get()
+                            if(times_repeat==""):
+                                successful_add=False
+                                break
+                            
+                            command_list.append([type_of_command, text_in_textbox, time_per_char, times_repeat])
+                        elif(type_of_command_string=="Move Mouse"):
+                            pass # dont forget to append to command list
                         else:
-                            key_click = widget_holding_key_click.getvar(str(widget_holding_key_click.cget("textvariable")))
-                        
-                        
-                        time_hold_repeat_frame = list_of_items[index][i+1]
-                        time_hold = time_hold_repeat_frame.winfo_children()[1].get()
-                        times_repeat = time_hold_repeat_frame.winfo_children()[4].get()
+                            if(type_of_command_string=="Keyboard"):
+                                type_of_command=command_type.Keyboard_Press
+                                key_click = widget_holding_key_click.get()
+                                if(key_click==""):
+                                    successful_add=False
+                                    break
+                            elif(type_of_command_string=="Wait"):
+                                type_of_command=command_type.Wait
+                                key_click=""
+                            elif(type_of_command_string=="Mouse"):
+                                type_of_command=command_type.Mouse_Click
+                                key_click = widget_holding_key_click.getvar(str(widget_holding_key_click.cget("textvariable")))
+                            
+                            time_hold_repeat_frame = list_of_items[index][i+1]
+                            time_hold = time_hold_repeat_frame.winfo_children()[1].get()
+                            times_repeat = time_hold_repeat_frame.winfo_children()[4].get()
 
-                        if(time_hold=="" or times_repeat==""):
-                            successful_add=False
-                            break
+                            if(time_hold=="" or times_repeat==""):
+                                successful_add=False
+                                break
 
-                        set_delay_frame = list_of_items[index][i+2]
-                        delay = set_delay_frame.winfo_children()[1].get()
-                        if(delay==""):
-                            successful_add=False
-                            break
-
-                        command_list.append([key_click,time_hold,times_repeat,delay])
+                            set_delay_frame = list_of_items[index][i+2]
+                            delay = set_delay_frame.winfo_children()[1].get()
+                            if(delay==""):
+                                successful_add=False
+                                break
+                            
+                            command_list.append([type_of_command, key_click,time_hold,times_repeat,delay])
 
                     if(not successful_add):
                        continue
@@ -227,34 +277,45 @@ def autoclick(delay,item):
 def execute_macro(loop,command_list,item):
     while(item.active):
         for command in command_list:
-            for i in range(command[3]):
+            for i in range(command[3]): #todo -> for move_mouse just set command[3] to one!
                 if(not item.active):
                     return
                 if(command[0]==command_type.Mouse_Click): # command is (type, key_click, hold time, repeat x times, delay)
                     mouse.press(button=command[1])
                     time.sleep(command[2]/1000.0) # I don't think the if(not is pressed) is needed with the mouse
                     mouse.release(button=command[1])
-                    # mouse.click(button=command[1])
                 elif(command[0]==command_type.Wait):
                     time.sleep(command[2]/1000.0)
                 elif(command[0]==command_type.Keyboard_Press):
-                    # print(item.key_click)
                     if(command[1][-1] == " "): #space at end means need a shift key
-                        keyboard.press("shift")
-                        keyboard.press(command[1][0])
+                        keyboard.press("shift+"+command[1][0])
                         time.sleep(command[2]/1000.0)
-                        if(not keyboard.is_pressed("shift")): # this doesn't count the shift it pressed down right above; just if actual shift is pressed down
-                            print("releasing shift")
-                            keyboard.release("shift")
+                        # if(not keyboard.is_pressed("shift")): # this doesn't count the shift it pressed down right above; just if actual shift is pressed down
+                        keyboard.release("shift")
                         # if(not keyboard.is_pressed(command[1][0])):
                         keyboard.release(command[1][0])
                     else:
                         # keyboard.send(command[1])
                         keyboard.press(command[1])
                         time.sleep(command[2]/1000.0)
-                        if(not keyboard.is_pressed(command[1])): # Needed if command[1] is shift
-                            keyboard.release(command[1])
-                        
+                        # if(not keyboard.is_pressed(command[1])): # Needed if command[1] is shift
+                        keyboard.release(command[1])
+                elif(command[0]==command_type.Text):#[type, character_list, time_per_char, times_repeat, 0]
+                    for character in command[1]:
+                        if(not item.active):
+                            return
+                        if(character[-1] == " "): #space at end means need a shift key
+                            keyboard.press("shift+"+character[0])
+                            # if(not keyboard.is_pressed("shift")): # this doesn't count the shift it pressed down right above; just if actual shift is pressed down
+                            keyboard.release("shift")
+                            # if(not keyboard.is_pressed(command[1][0])):
+                            keyboard.release(character[0])
+                        else:
+                            keyboard.press(character)
+                            # if(not keyboard.is_pressed(character)): # Needed if command[1] is shift
+                            keyboard.release(character)
+                        time.sleep(command[2]/1000.0)
+
                 # print("clicked")
                 time.sleep(command[4]/1000.0)
         if(not loop):
@@ -339,27 +400,105 @@ def update_canvas_for_scroll(canvas):
     canvas.configure(scrollregion=canvas.bbox("all"))
 
 #updates frame to be mouse or keyboard selection
-def mouse_or_keyboard_selector_update(new_selection, current_frame):
-    old_thing = current_frame.winfo_children()[2]
+def mouse_or_keyboard_selector_update(isAutoclicker, new_selection, set_click_key_frame,set_time_hold_repeat_frame,set_delay_frame):
+    old_thing = set_click_key_frame.winfo_children()[2] 
     old_thing.grid_forget()
     old_thing.destroy()
+    if(not isAutoclicker):
+        for child in set_time_hold_repeat_frame.winfo_children(): 
+            child.grid_forget()
+            child.destroy()
+        for child in set_delay_frame.winfo_children(): 
+            child.grid_forget()
+            child.destroy()
+    if(new_selection=="Text"):
+        #text input textbox    
+        text_textbox=Entry(set_click_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=17)
+        text_textbox.grid(row=0,column=2)
+        
+        #time between button presses
+        time_between_button_presses_label1 = Label(set_time_hold_repeat_frame,text="Type a character every ",fg="white", bg="black",font=("Arial",15))
+        time_between_button_presses_label1.grid(row=0, column=0) #padx=(19,0) would align with the Run entrybox of other commands
 
-    if(new_selection=="Mouse"):
-        mouse_button_selector_string=StringVar()
-        mouse_button_selector = OptionMenu(current_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
-        mouse_button_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
-        mouse_button_selector["menu"].config(bg="black",fg="white")
-        mouse_button_selector_string.set("Left Click")
-        mouse_button_selector.grid(row=0, column=2, padx=5)
-    elif (new_selection=="Keyboard"):
-        click_key_string = StringVar()
-        click_key_string.trace_add("write", lambda name, index, mode: strip_string_variable(click_key_string))
-        click_key_textbox=Entry(current_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=14, textvariable=click_key_string)
-        click_key_textbox.bind("<Key>",store_key_in_textbox)
-        click_key_textbox.grid(row=0,column=2, padx=5)
-    elif(new_selection=="Wait"):
-        label_so_dont_crash = Label(current_frame,bg="black", text="")
-        label_so_dont_crash.grid(row=0, column=2, padx=5)
+        set_time_between_presses_validate_command = (set_time_hold_repeat_frame.register(validate_so_only_numbers),"%S")
+        set_time_between_presses_textbox=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=set_time_between_presses_validate_command)
+        set_time_between_presses_textbox.grid(row=0,column=1)
+        
+        # total_time=0
+        # time_between_button_presses_label2= Label(set_time_hold_repeat_frame, text="ms for total of "+str(total_time)+" ms",fg="white", bg="black",font=("Arial",15))
+        # time_between_button_presses_label2.grid(row=0, column=2)
+        time_between_button_presses_label2= Label(set_time_hold_repeat_frame, text="ms",fg="white", bg="black",font=("Arial",15))
+        time_between_button_presses_label2.grid(row=0, column=2)
+        
+        #set time repeat
+        set_time_repeat_label = Label(set_delay_frame,text="Run: ",fg="white", bg="black",font=("Arial",15))
+        set_time_repeat_label.grid(row=0,column=0, padx=(5,0))
+
+        only_numbers_validate_command = (set_delay_frame.register(validate_so_only_numbers),"%S")
+        set_time_repeat_textbox=Entry(set_delay_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
+        set_time_repeat_textbox.grid(row=0,column=1)
+        set_time_repeat_textbox.insert(0,"1")
+
+        set_time_repeat_times_label = Label(set_delay_frame,text="times",fg="white", bg="black",font=("Arial",15))
+        set_time_repeat_times_label.grid(row=0,column=2)
+    elif(new_selection=="Move Mouse"):
+        #option menu for absolute/relative
+        #label/entry for x (can be negative)
+        #label/entry for y (can be negative)
+        #label entry for time
+        #button for set position from click
+        pass
+    else:
+        if(new_selection=="Mouse"):
+            mouse_button_selector_string=StringVar()
+            mouse_button_selector = OptionMenu(set_click_key_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
+            mouse_button_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+            mouse_button_selector["menu"].config(bg="black",fg="white")
+            mouse_button_selector_string.set("Left Click")
+            mouse_button_selector.grid(row=0, column=2, padx=5)
+        elif (new_selection=="Keyboard"):
+            click_key_string = StringVar()
+            click_key_string.trace_add("write", lambda name, index, mode: strip_string_variable(click_key_string))
+            click_key_textbox=Entry(set_click_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=14, textvariable=click_key_string)
+            click_key_textbox.bind("<Key>",store_key_in_textbox)
+            click_key_textbox.grid(row=0,column=2, padx=5)
+        elif(new_selection=="Wait"):
+            label_so_dont_crash = Label(set_click_key_frame,bg="black", text="")
+            label_so_dont_crash.grid(row=0, column=2, padx=5)
+            
+        if(not isAutoclicker):
+            set_time_hold_label = Label(set_time_hold_repeat_frame,text="Hold for: ",fg="white", bg="black",font=("Arial",15))
+            set_time_hold_label.grid(row=0,column=0)
+            
+            only_numbers_validate_command = (set_time_hold_repeat_frame.register(validate_so_only_numbers),"%S")
+            set_time_hold_textbox=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
+            set_time_hold_textbox.grid(row=0,column=1)
+            set_time_hold_textbox.insert(0,"0")
+
+            set_time_hold_seconds_label = Label(set_time_hold_repeat_frame,text="ms",fg="white", bg="black",font=("Arial",15))
+            set_time_hold_seconds_label.grid(row=0,column=2)
+            
+            #Set Times Repeat
+            set_time_repeat_label = Label(set_time_hold_repeat_frame,text="Run: ",fg="white", bg="black",font=("Arial",15))
+            set_time_repeat_label.grid(row=0,column=3, padx=(5,0))
+
+            set_time_repeat_textbox=Entry(set_time_hold_repeat_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=only_numbers_validate_command)
+            set_time_repeat_textbox.grid(row=0,column=4)
+            set_time_repeat_textbox.insert(0,"1")
+
+            set_time_repeat_times_label = Label(set_time_hold_repeat_frame,text="times",fg="white", bg="black",font=("Arial",15))
+            set_time_repeat_times_label.grid(row=0,column=5)
+
+            #Set Delay
+            set_delay_label = Label(set_delay_frame,text="Delay: ",fg="white", bg="black",font=("Arial",15))
+            set_delay_label.grid(row=0,column=0,padx=(5,0))
+
+            set_delay_validate_command = (set_delay_frame.register(validate_so_only_numbers),"%S")
+            set_delay_textbox=Entry(set_delay_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white", width=5, validate="key", validatecommand=set_delay_validate_command)
+            set_delay_textbox.grid(row=0,column=1)
+
+            set_delay_seconds_label = Label(set_delay_frame,text="ms",fg="white", bg="black",font=("Arial",15))
+            set_delay_seconds_label.grid(row=0,column=2)
 
 def load_file():
     global list_of_items
@@ -399,7 +538,7 @@ def load_file():
             set_click_key_frame=item_just_added[3]
             type_selector = set_click_key_frame.winfo_children()[1]
             type_selector.setvar(name=str(type_selector.cget("textvariable")), value=item_data[4])
-            mouse_or_keyboard_selector_update(item_data[4], set_click_key_frame)
+            mouse_or_keyboard_selector_update(True, item_data[4], set_click_key_frame, set_click_key_frame, set_click_key_frame)
             if (item_data[4]=="Mouse"):
                 button_click_selector = set_click_key_frame.winfo_children()[2]
                 button_click_selector.setvar(name=str(button_click_selector.cget("textvariable")), value=item_data[5].replace("_"," "))
@@ -412,7 +551,6 @@ def load_file():
             #setting delay
             set_delay_frame=item_just_added[4]
             set_delay_frame.winfo_children()[1].insert(0, item_data[6])
-
         elif(item_data[2]=="Macro"):
             #adding the macro
             type_selector_string.set("Macro")
@@ -446,29 +584,46 @@ def load_file():
                 command_data = item_data[command_index].split("_$$$_")
                 #setting click key
                 set_click_key_frame=item_just_added[5 + (command_index-5)*number_of_frames_in_macro_command]
+                set_time_hold_repeat_frame=item_just_added[6 + (command_index-5)*number_of_frames_in_macro_command]
+                set_delay_frame=item_just_added[7 + (command_index-5)*number_of_frames_in_macro_command]
                 type_selector = set_click_key_frame.winfo_children()[1]
                 type_selector.setvar(name=str(type_selector.cget("textvariable")), value=command_data[0])
-                mouse_or_keyboard_selector_update(command_data[0], set_click_key_frame)
-                if (command_data[0]=="Mouse"):
-                    button_click_selector = set_click_key_frame.winfo_children()[2]
-                    button_click_selector.setvar(name=str(button_click_selector.cget("textvariable")), value=command_data[1].replace("_"," "))
-                elif (command_data[0]=="Keyboard"):
-                    if(command_data[1]!="_"):
-                        set_click_key_frame.winfo_children()[2].insert(0, command_data[1].replace("_"," "))
-                    else:
-                        set_click_key_frame.winfo_children()[2].insert(0, command_data[1])
+                mouse_or_keyboard_selector_update(False, command_data[0], set_click_key_frame, set_time_hold_repeat_frame,set_delay_frame)
+                if(command_data[0]=="Text"):
+                    text_textbox = set_click_key_frame.winfo_children()[2]
+                    text_textbox.insert(0,command_data[1].replace("_$$$$$_"," "))
 
-                #setting time hold for
-                set_time_hold_repeat_frame=item_just_added[6 + (command_index-5)*number_of_frames_in_macro_command]
-                set_time_hold_repeat_frame.winfo_children()[1].delete(0, END)
-                set_time_hold_repeat_frame.winfo_children()[1].insert(0, command_data[2])
-                #setting time repeat
-                set_time_hold_repeat_frame.winfo_children()[4].delete(0, END)
-                set_time_hold_repeat_frame.winfo_children()[4].insert(0, command_data[3])
+                    time_between_button_presses_textbox = set_time_hold_repeat_frame.winfo_children()[1]
+                    time_between_button_presses_textbox.insert(0,command_data[2])
 
-                #setting delay
-                set_delay_frame=item_just_added[7 + (command_index-5)*number_of_frames_in_macro_command]
-                set_delay_frame.winfo_children()[1].insert(0, command_data[4])
+                    times_repeat_textbox = set_delay_frame.winfo_children()[1]
+                    times_repeat_textbox.delete(0,END)
+                    times_repeat_textbox.insert(0, command_data[3])
+                elif(command_data[0]=="Move_Mouse"): #todo -> space here is bad so did no space/underscore
+                    pass
+                else:
+                    if (command_data[0]=="Mouse"):
+                        button_click_selector = set_click_key_frame.winfo_children()[2]
+                        button_click_selector.setvar(name=str(button_click_selector.cget("textvariable")), value=command_data[1].replace("_"," "))
+                    elif (command_data[0]=="Keyboard"):
+                        if(command_data[1]!="_"):
+                            set_click_key_frame.winfo_children()[2].insert(0, command_data[1].replace("_"," "))
+                        else:
+                            set_click_key_frame.winfo_children()[2].insert(0, command_data[1])
+                    elif(command_data[0]=="Wait"):
+                        pass # don't need to do anything
+
+                    #setting time hold for
+                    # set_time_hold_repeat_frame=item_just_added[6 + (command_index-5)*number_of_frames_in_macro_command]
+                    set_time_hold_repeat_frame.winfo_children()[1].delete(0, END)
+                    set_time_hold_repeat_frame.winfo_children()[1].insert(0, command_data[2])
+                    #setting time repeat
+                    set_time_hold_repeat_frame.winfo_children()[4].delete(0, END)
+                    set_time_hold_repeat_frame.winfo_children()[4].insert(0, command_data[3])
+
+                    #setting delay
+                    # set_delay_frame=item_just_added[7 + (command_index-5)*number_of_frames_in_macro_command]
+                    set_delay_frame.winfo_children()[1].insert(0, command_data[4])
     file.close()
 
 def save_file():
@@ -487,12 +642,14 @@ def save_file():
             file_text+=toggle_key+" "
             
             key_click_frame = list_of_items[index][3]
+            widget_holding_type = key_click_frame.winfo_children()[1]
+            type_of_command_string = widget_holding_type.getvar(str(widget_holding_type.cget("textvariable")))
             widget_holding_key_click = key_click_frame.winfo_children()[2]
-            if(str(type(widget_holding_key_click)) == "<class 'tkinter.Entry'>"):
+            if(type_of_command_string=="Keyboard"):
                 key_click = widget_holding_key_click.get()
                 key_click = key_click.replace(" ","_")
                 file_text+="Keyboard "
-            else:
+            elif(type_of_command_string=="Mouse"):
                 key_click = widget_holding_key_click.getvar(str(widget_holding_key_click.cget("textvariable")))
                 key_click = key_click.replace(" ","_")
                 file_text+="Mouse "
@@ -521,32 +678,52 @@ def save_file():
 
             for i in range(5,len(list_of_items[index]),number_of_frames_in_macro_command):
                 key_click_frame = list_of_items[index][i]
+                widget_holding_type = key_click_frame.winfo_children()[1]
+                type_of_command_string = widget_holding_type.getvar(str(widget_holding_type.cget("textvariable")))
                 widget_holding_key_click = key_click_frame.winfo_children()[2]
-                if(str(type(widget_holding_key_click)) == "<class 'tkinter.Entry'>"):
-                    key_click = widget_holding_key_click.get()
-                    file_text+="Keyboard_$$$_"
-                elif(str(type(widget_holding_key_click)) == "<class 'tkinter.Label'>"):
-                    key_click=""
-                    file_text+="Wait_$$$_"
+                
+                if(type_of_command_string=="Text"):
+                    file_text+="Text_$$$_"
+
+                    text= widget_holding_key_click.get().replace(" ","_$$$$$_") #todo update read me saying don't put  _$$$$$_ or _$$$_ in text textbox
+                    file_text+=text+"_$$$_"
+
+                    time_hold_repeat_frame = list_of_items[index][i+1]
+                    time_between_button_presses = time_hold_repeat_frame.winfo_children()[1].get()
+                    file_text+=time_between_button_presses+"_$$$_"
+
+                    set_delay_frame = list_of_items[index][i+2]
+                    times_repeat = set_delay_frame.winfo_children()[1].get()
+                    file_text+=times_repeat
+
+                elif(type_of_command_string=="Move Mouse"):
+                    pass #when adding name don't have a space! just do _ or MoveMouse
                 else:
-                    key_click = widget_holding_key_click.getvar(str(widget_holding_key_click.cget("textvariable")))
-                    key_click = key_click.replace(" ","_")
-                    file_text+="Mouse_$$$_"
-                file_text+=key_click+"_$$$_"
+                    if(type_of_command_string=="Keyboard"):
+                        key_click = widget_holding_key_click.get()
+                        file_text+="Keyboard_$$$_"
+                    elif(type_of_command_string=="Wait"):
+                        key_click=""
+                        file_text+="Wait_$$$_"
+                    elif(type_of_command_string=="Mouse"):
+                        key_click = widget_holding_key_click.getvar(str(widget_holding_key_click.cget("textvariable")))
+                        key_click = key_click.replace(" ","_")
+                        file_text+="Mouse_$$$_"
+                    file_text+=key_click+"_$$$_"
 
-                time_hold_repeat_frame = list_of_items[index][i+1]
-                time_hold = time_hold_repeat_frame.winfo_children()[1].get()
-                file_text+=time_hold+"_$$$_"
-                times_repeat = time_hold_repeat_frame.winfo_children()[4].get()
-                file_text+=times_repeat+"_$$$_"
-                    
-                set_delay_frame = list_of_items[index][i+2]
-                delay = set_delay_frame.winfo_children()[1].get()
-                file_text+=delay
+                    time_hold_repeat_frame = list_of_items[index][i+1]
+                    time_hold = time_hold_repeat_frame.winfo_children()[1].get()
+                    file_text+=time_hold+"_$$$_"
+                    times_repeat = time_hold_repeat_frame.winfo_children()[4].get()
+                    file_text+=times_repeat+"_$$$_"
+                        
+                    set_delay_frame = list_of_items[index][i+2]
+                    delay = set_delay_frame.winfo_children()[1].get()
+                    file_text+=delay
 
-                if(i!=len(list_of_items[index])-number_of_frames_in_macro_command):
+                if(i!=len(list_of_items[index])-number_of_frames_in_macro_command):#add a space for the next command if are not the last command
                     file_text+=" "
-        if(index!=len(list_of_items)-1):
+        if(index!=len(list_of_items)-1):#add a new line for next item if are not the last item
             file_text+="\n"
 
     file=filedialog.asksaveasfile(defaultextension=".txt", filetypes=[("Text File",".txt")])
@@ -586,24 +763,6 @@ def add_new_command(current_row):
 
     set_click_key_label = Label(set_click_key_frame,text=str(number_of_commands) + ". Click Key: ",fg="white", bg="black",font=("Arial",15))
     set_click_key_label.grid(row=0,column=0)
-
-    mouse_or_keyboard_selector_string=StringVar()
-    mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard","Wait", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
-    mouse_or_keyboard_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
-    mouse_or_keyboard_selector["menu"].config(bg="black",fg="white")
-    mouse_or_keyboard_selector_string.set("Mouse")
-    mouse_or_keyboard_selector.grid(row=0, column=1, padx=(0,5))
-
-    # toggle_key_textbox=Entry(set_click_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white")
-    # toggle_key_textbox.bind("<Key>",store_key_in_textbox)
-    # toggle_key_textbox.grid(row=0,column=2, padx=5)
-
-    mouse_button_selector_string=StringVar()
-    mouse_button_selector = OptionMenu(set_click_key_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
-    mouse_button_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
-    mouse_button_selector["menu"].config(bg="black",fg="white")
-    mouse_button_selector_string.set("Left Click")
-    mouse_button_selector.grid(row=0, column=2, padx=5)
 
     #Set Time Hold For
     set_time_hold_repeat_frame = Frame(mainframe)
@@ -648,6 +807,21 @@ def add_new_command(current_row):
 
     set_delay_seconds_label = Label(set_delay_frame,text="ms",fg="white", bg="black",font=("Arial",15))
     set_delay_seconds_label.grid(row=0,column=2)
+
+    #doing this now because have all frames in scope so can put in the lambda
+    mouse_or_keyboard_selector_string=StringVar()
+    mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard","Move Mouse","Text", "Wait", command= lambda new_selection: mouse_or_keyboard_selector_update(False, new_selection,set_click_key_frame,set_time_hold_repeat_frame,set_delay_frame))
+    mouse_or_keyboard_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+    mouse_or_keyboard_selector["menu"].config(bg="black",fg="white")
+    mouse_or_keyboard_selector_string.set("Mouse")
+    mouse_or_keyboard_selector.grid(row=0, column=1, padx=(0,5))
+
+    mouse_button_selector_string=StringVar() # need this one with the thing above so is always the 2nd child of the frame
+    mouse_button_selector = OptionMenu(set_click_key_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
+    mouse_button_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+    mouse_button_selector["menu"].config(bg="black",fg="white")
+    mouse_button_selector_string.set("Left Click")
+    mouse_button_selector.grid(row=0, column=2, padx=5)
 
     #delete button
     delete_command_button_frame = Frame(mainframe)
@@ -775,15 +949,11 @@ def add_new():
         set_click_key_label.grid(row=0,column=0)
 
         mouse_or_keyboard_selector_string=StringVar()
-        mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
+        mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard", command= lambda new_selection: mouse_or_keyboard_selector_update(True, new_selection,set_click_key_frame, set_click_key_frame, set_click_key_frame))
         mouse_or_keyboard_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
         mouse_or_keyboard_selector["menu"].config(bg="black",fg="white")
         mouse_or_keyboard_selector_string.set("Mouse")
         mouse_or_keyboard_selector.grid(row=0, column=1, padx=(0,5))
-
-        # toggle_key_textbox=Entry(set_click_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white")
-        # toggle_key_textbox.bind("<Key>",store_key_in_textbox)
-        # toggle_key_textbox.grid(row=0,column=2, padx=5)
 
         mouse_button_selector_string=StringVar()
         mouse_button_selector = OptionMenu(set_click_key_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
@@ -884,24 +1054,6 @@ def add_new():
         set_click_key_label = Label(set_click_key_frame,text="1. Click Key: ",fg="white", bg="black",font=("Arial",15))
         set_click_key_label.grid(row=0,column=0)
 
-        mouse_or_keyboard_selector_string=StringVar()
-        mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard","Wait", command= lambda new_selection: mouse_or_keyboard_selector_update(new_selection,set_click_key_frame))
-        mouse_or_keyboard_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
-        mouse_or_keyboard_selector["menu"].config(bg="black",fg="white")
-        mouse_or_keyboard_selector_string.set("Mouse")
-        mouse_or_keyboard_selector.grid(row=0, column=1, padx=(0,5))
-
-        # toggle_key_textbox=Entry(set_click_key_frame,fg="white", bg="black",font=("Arial",15), insertbackground="white")
-        # toggle_key_textbox.bind("<Key>",store_key_in_textbox)
-        # toggle_key_textbox.grid(row=0,column=2, padx=5)
-
-        mouse_button_selector_string=StringVar()
-        mouse_button_selector = OptionMenu(set_click_key_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
-        mouse_button_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
-        mouse_button_selector["menu"].config(bg="black",fg="white")
-        mouse_button_selector_string.set("Left Click")
-        mouse_button_selector.grid(row=0, column=2, padx=5)
-
         #Set Time Hold For
         set_time_hold_repeat_frame = Frame(mainframe)
         set_time_hold_repeat_frame.grid(row=current_row+2,column=1, sticky=(N,E,S,W))
@@ -945,6 +1097,21 @@ def add_new():
 
         set_delay_seconds_label = Label(set_delay_frame,text="ms",fg="white", bg="black",font=("Arial",15))
         set_delay_seconds_label.grid(row=0,column=2)
+
+        #doing this now because have all frames in scope so can put in the lambda
+        mouse_or_keyboard_selector_string=StringVar()
+        mouse_or_keyboard_selector = OptionMenu(set_click_key_frame, mouse_or_keyboard_selector_string, "Mouse","Keyboard","Move Mouse", "Text","Wait", command= lambda new_selection: mouse_or_keyboard_selector_update(False, new_selection,set_click_key_frame,set_time_hold_repeat_frame,set_delay_frame)) #todo -> maybe change order to mouse, mv mouse, keyboard, text, wait
+        mouse_or_keyboard_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+        mouse_or_keyboard_selector["menu"].config(bg="black",fg="white")
+        mouse_or_keyboard_selector_string.set("Mouse")
+        mouse_or_keyboard_selector.grid(row=0, column=1, padx=(0,5))
+
+        mouse_button_selector_string=StringVar() # need this one with the thing above so is always the 2nd child of the frame
+        mouse_button_selector = OptionMenu(set_click_key_frame, mouse_button_selector_string, "Left Click","Right Click", "Middle Click")
+        mouse_button_selector.configure(bg="black", fg="white", activebackground="black",activeforeground="white")
+        mouse_button_selector["menu"].config(bg="black",fg="white")
+        mouse_button_selector_string.set("Left Click")
+        mouse_button_selector.grid(row=0, column=2, padx=5)
 
         #delete button
         delete_command_button_frame = Frame(mainframe)
