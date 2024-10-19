@@ -19,9 +19,9 @@ The 'Add Another Command' button allows you to add another command for the macro
 You can delete a macro command by clicking the 'Delete Command' button on the very right of the command you wish to delete.<br/>
 The 'Hold For' textbox sets the time the selected key should be held down in milliseconds.<br/>
 The 'Run' textbox sets the number of times that a command will run before moving onto the next command.<br/>
-The 'Delay' textbox sets the time to wait after each iteration of a command.<br/>
+The 'Delay' textbox sets the time to wait in milliseconds after each iteration of a command.<br/>
 
-The 'Click Key' selector has an addition field 'Move Mouse' in which you can set the mouse to move in a certain way.<br/>
+The 'Click Key' selector has an additional field 'Move Mouse' in which you can set the mouse to move in a certain way.<br/>
 &ensp; There is a selector right after the 'Click Key' selector that lets you pick between moving the mouse to an 'Absolute Position' or 'Relative Position' on the screen.<br/>
 &ensp; &ensp; 'Absolute Position' means the mouse will go directly to the x and y coordinates selected.<br/>
 &ensp; &ensp; 'Relative Position' means the mouse will add the x and y coordinates selected to its current position.<br/>
@@ -29,11 +29,11 @@ The 'Click Key' selector has an addition field 'Move Mouse' in which you can set
 &ensp; The 'Duration' textbox allows you to set the time it will take the mouse to complete its move.<br/>
 &ensp; The 'Record Mouse x/y on Click' button lets you automatically set the x/y textboxes. After clicking the button, click anywhere on the screen, and the x/y textboxes will be set to the coordinates of the location you clicked. A warning: if you click on a component of the app, the component will be interacted with. For example, if you click a 'Delete' button, the x/y textboxes will be set to the coordinates of the click, but then the delete button will trigger. I recommend moving the application window out of the way of where you want to click to avoid accidentally interacting with something.<br/>
 
-The 'Click Key' selector has an addition field 'Text' where you can set a string of characters to be typed out.<br/>
+The 'Click Key' selector has an additional field 'Text' where you can set a string of characters to be typed out.<br/>
 &ensp; There is a textbox right after the 'Click Key' selector where you may enter the characters you wish to be typed.<br/>
 &ensp; The 'Type a character every' textbox lets you set the delay in milliseconds after each character is typed.<br/>
 
-The 'Click Key' selector has an addition field 'Wait' in which no key will be clicked. The total time waited for equals (Run) * (HoldFor + Delay). <br/>
+The 'Click Key' selector has an additional field 'Wait' in which no key will be clicked. The total time waited for equals (Run) * (HoldFor + Delay). <br/>
 --Running the Autoclickers/Macros--
 Once you have set up your autoclickers/macros, you can click the 'Change mode to Running' button at the top to disable editing and start executing the autoclickers/macros.<br/>
 When you press the assigned Toggle Key, the corresponding autoclicker/macro will turn on/off.<br/>
@@ -43,6 +43,7 @@ An autoclicker/macro will not execute if any of its textboxes are empty (except 
 --Saving/Loading--<br/>
 Clicking the 'Save File' button at the bottom allows you to save your current autoclickers/macros to a file.<br/>
 Clicking the 'Load File' button at the bottom allows you to load previously saved autoclickers/macros. The autoclickers/macros in the file will be added to the bottom of any you currently have in the application. <br/>
+<br/>
 --Miscellaneous--<br/>
 There is a scrollbar located on the right side of the window. You can use it to scroll through the application if the size of the autoclickers/macros exceeds the window size.<br/>
 There is no way to stop a mouse from moving once it has begun, even when the mode is changed to Edit.<br/>
