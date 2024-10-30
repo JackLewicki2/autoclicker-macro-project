@@ -20,12 +20,12 @@ The 'Hold For' textbox sets the time the selected key should be held down in mil
 The 'Run' textbox sets the number of times that a command will run before moving onto the next command.<br/>
 The 'Delay' textbox sets the time to wait in milliseconds after each iteration of a command.<br/>
 The 'Click Key' selector has an additional field 'Move Mouse' in which you can set the mouse to move in a certain way.<br/>
-&ensp; -There is a selector right after the 'Click Key' selector that lets you pick between moving the mouse to an 'Absolute Position' or 'Relative<br/>&ensp;&ensp; Position' on the screen.<br/>
+&ensp; -There is a selector right after the 'Click Key' selector that lets you pick between moving the mouse to an 'Absolute Position' or 'Relative Position' on the screen.<br/>
 &ensp; &ensp; -'Absolute Position' means the mouse will go directly to the x and y coordinates selected.<br/>
 &ensp; &ensp; -'Relative Position' means the mouse will add the x and y coordinates selected to its current position.<br/>
 &ensp; -The 'x' and 'y' textboxes allow you to set the x and y coordinates as described above. They can contain negative values.<br/>
 &ensp; -The 'Duration' textbox allows you to set the time it takes the mouse to complete its move.<br/>
-&ensp; -The 'Record Mouse x/y on Click' button lets you automatically set the x/y textboxes. After clicking the button, click anywhere on the screen,<br/>&ensp;&ensp; and the x/y textboxes will be set to the coordinates of the location you clicked. A warning: if you click on a component of the app, the<br/>&ensp;&ensp; component will be interacted with. For example, if you click a 'Delete' button, the x/y textboxes will be set to the coordinates of the click, but<br/>&ensp;&ensp; then the delete button will trigger. I recommend moving the application window out of the way of where you want to click to avoid<br/>&ensp;&ensp; accidentally interacting with a component.<br/>
+&ensp; -The 'Record Mouse x/y on Click' button lets you automatically set the x/y textboxes. After clicking the button, click anywhere on the screen, and the x/y textboxes will be set to the coordinates of the location you clicked. A warning: if you click on a component of the app, the component will be interacted with. For example, if you click a 'Delete' button, the x/y textboxes will be set to the coordinates of the click, but then the delete button will trigger. I recommend moving the application window out of the way of where you want to click to avoid accidentally interacting with a component.<br/>
 The 'Click Key' selector has an additional field 'Text' where you can set a string of characters to be typed out.<br/>
 &ensp; -There is a textbox right after the 'Click Key' selector where you can enter the characters you wish to be typed.<br/>
 &ensp; -The 'Type a character every' textbox lets you set the delay in milliseconds after each character is typed.<br/>
